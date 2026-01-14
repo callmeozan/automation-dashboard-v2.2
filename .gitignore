@@ -1,0 +1,13 @@
+# Abaikan file koneksi database (SENSITIF!)
+config.php
+
+# Abaikan folder upload user (Supaya repo tidak berat)
+uploads/
+
+# Abaikan file sampah sistem (Mac/Windows)
+.DS_Store
+Thumbs.db
+
+# Abaikan file hasil export excel (Jika ada)
+export/*.xlsx
+export/*.xls
