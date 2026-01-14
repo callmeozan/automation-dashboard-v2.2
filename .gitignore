@@ -3,6 +3,7 @@ config.php
 
 # Abaikan folder upload user (Supaya repo tidak berat)
 uploads/
+images/
 
 # Abaikan file sampah sistem (Mac/Windows)
 .DS_Store
