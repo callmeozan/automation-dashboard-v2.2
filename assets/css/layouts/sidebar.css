@@ -1,0 +1,14 @@
+.nav-item {
+    display: flex; 
+    align-items: center; 
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem; 
+    color: #94a3b8; 
+    transition: all 0.2s;
+    margin-bottom: 0.5rem; /* Memberi jarak antar menu */
+}
+.nav-item:hover { background-color: #1e293b; color: white; }
+.nav-item.active {
+    background-color: rgba(5, 150, 105, 0.2); color: #34d399;
+    border: 1px solid rgba(5, 150, 105, 0.3);
+}

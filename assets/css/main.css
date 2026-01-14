@@ -1,0 +1,101 @@
+/* --- 1. GLOBAL SETTINGS --- */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+.fade-in { animation: fadeIn 0.5s ease-in-out; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   MAGIC LIGHT MODE OVERRIDE (SUPER COMPLETE)
+   ========================================= */
+
+/* 1. Body & Background Dasar */
+body.light-mode {
+    background-color: #f1f5f9 !important; /* slate-100 */
+    color: #1e293b !important; /* slate-800 */
+}
+
+/* 2. Paksa Main Content jadi Terang */
+body.light-mode #main-content {
+    background-color: #f1f5f9 !important;
+}
+
+/* 3. Sidebar & Header (Putih Bersih) */
+body.light-mode .bg-slate-950,
+body.light-mode .bg-slate-900,
+body.light-mode header {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important; /* Border jadi abu muda */
+}
+
+/* 4. KARTU & CONTAINER (Search, Tombol Wrapper, Tabel Wrapper) */
+/* Ini kunci agar container search & tabel jadi putih */
+body.light-mode .bg-slate-800 {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important; /* slate-300 */
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05) !important;
+}
+
+/* 5. Text Color Swap */
+body.light-mode .text-white {
+    color: #0f172a !important; /* Putih -> Hitam */
+}
+body.light-mode .text-slate-200,
+body.light-mode .text-slate-300,
+body.light-mode .text-slate-400,
+body.light-mode .text-slate-500 {
+    color: #475569 !important; /* Abu -> Abu Gelap */
+}
+
+/* 6. Border Gelap jadi Terang */
+body.light-mode .border-slate-700,
+body.light-mode .border-slate-800 {
+    border-color: #e2e8f0 !important;
+}
+
+/* 7. Input Field (Search Bar & Form) */
+body.light-mode input, 
+body.light-mode select, 
+body.light-mode textarea {
+    background-color: #f8fafc !important; /* slate-50 */
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+}
+/* Placeholder Input biar kebaca */
+body.light-mode input::placeholder,
+body.light-mode textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* 8. Tabel */
+body.light-mode tr:hover {
+    background-color: #f1f5f9 !important; /* Hover jadi abu sangat muda */
+}
+body.light-mode thead {
+    background-color: #f8fafc !important; /* Header tabel jadi terang */
+    color: #475569 !important;
+}
+
+/* 9. Tom Select (Dropdown) */
+body.light-mode .ts-control,
+body.light-mode .ts-dropdown {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+body.light-mode .ts-dropdown .active {
+    background-color: #f1f5f9 !important;
+}
+
+/* 10. KPI Cards Specific */
+body.light-mode .kpi-card {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+}

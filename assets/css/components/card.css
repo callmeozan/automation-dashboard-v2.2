@@ -1,0 +1,12 @@
+.kpi-card {
+    background-color: #1e293b; /* Slate 800 */
+    padding: 1.25rem;
+    border-radius: 0.75rem; 
+    border: 1px solid #334155;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s; 
+    cursor: default;
+}
+.kpi-card:hover { border-color: rgba(16, 185, 129, 0.5); }
+
+.icon-box { padding: 0.5rem; border-radius: 0.5rem; }
