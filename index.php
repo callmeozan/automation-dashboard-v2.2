@@ -52,6 +52,22 @@ if (isset($_SESSION['user_id'])) {
             }
         }
     </style>
+
+    <link rel="manifest" href="manifest.json">
+        
+        <meta name="theme-color" content="#03142c">
+        <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2920/2920249.png">
+
+        <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+            navigator.serviceWorker
+                .register("sw.js")
+                .then(res => console.log("Service Worker berhasil didaftarkan!"))
+                .catch(err => console.log("Gagal mendaftarkan Service Worker", err));
+            });
+        }
+        </script>
 </head>
 
 <body class="bg-slate-950 text-slate-200 font-sans antialiased h-screen flex items-center justify-center relative overflow-hidden">
@@ -154,9 +170,82 @@ if (isset($_SESSION['user_id'])) {
         ";
     }
     ?>
-</body>
 
-</html>
+    <!-- INSTAL POP UP DISINI -->
+<div id="install-popup" class="hidden fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white p-4 rounded-xl shadow-2xl border border-slate-100 z-[9999] flex flex-col gap-4 animate-bounce-in">
+    
+    <div class="flex items-start gap-4">
+        <div class="bg-blue-50 p-2 rounded-lg shrink-0">
+            <img src="image/gajah_tunggal_biru.png" alt="App Logo" class="w-10 h-10 object-contain">
+        </div>
+        <div>
+            <h3 class="text-sm font-bold text-slate-800">Install Automation Dashboard App</h3>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                Pasang aplikasi ini di layar utama agar akses lebih cepat & bisa jalan offline! 🚀
+            </p>
+        </div>
+    </div>
+
+    <div class="flex gap-2">
+        <button id="btn-batal" class="flex-1 py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+            Nanti Saja
+        </button>
+        <button id="btn-install-app" class="flex-1 py-2 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-200 transition flex items-center justify-center gap-2">
+            <i class="fas fa-download"></i> Install Sekarang
+        </button>
+    </div>
+</div>
+
+<script>
+    let deferredPrompt; // Wadah untuk menyimpan event install bawaan browser
+    const popup = document.getElementById('install-popup');
+    const btnInstall = document.getElementById('btn-install-app');
+    const btnBatal = document.getElementById('btn-batal');
+
+    // 1. Dengar Event "beforeinstallprompt"
+    // Browser berteriak: "Hei, web ini bisa diinstall lho!"
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Tahan dulu, jangan biarkan browser kasih notifikasi default yang kecil
+        e.preventDefault();
+        
+        // Simpan event-nya ke variabel, biar bisa kita panggil nanti saat tombol diklik
+        deferredPrompt = e;
+        
+        // Munculkan Pop-up buatan kita
+        popup.classList.remove('hidden');
+        popup.classList.add('flex'); // Pakai flex biar rapi
+    });
+
+    // 2. Jika Tombol "Install Sekarang" Diklik
+    btnInstall.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // Panggil prompt asli browser lewat tombol kita
+            deferredPrompt.prompt();
+            
+            // Tunggu user klik "Accept" atau "Cancel"
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User memilih: ${outcome}`);
+            
+            // Hapus event karena sudah dipakai (cuma bisa sekali pakai)
+            deferredPrompt = null;
+            
+            // Sembunyikan pop-up
+            popup.classList.add('hidden');
+        }
+    });
+
+    // 3. Jika Tombol "Nanti Saja" Diklik
+    btnBatal.addEventListener('click', () => {
+        popup.classList.add('hidden');
+    });
+
+    // 4. Cek kalau user sudah install, sembunyikan popup (Backup Logic)
+    window.addEventListener('appinstalled', () => {
+        popup.classList.add('hidden');
+        deferredPrompt = null;
+        console.log('Aplikasi berhasil diinstall!');
+    });
+</script>
 </body>
 
 </html>

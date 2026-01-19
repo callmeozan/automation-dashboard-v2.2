@@ -50,6 +50,7 @@ $totalNotif = $countBreakdown + $countOverdue;
 
 <head>
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#03142c">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Items - Automation Portal</title>
 
@@ -340,8 +341,32 @@ $totalNotif = $countBreakdown + $countOverdue;
                                             <td class="px-6 py-4 text-white font-medium">
                                                 <?php echo $row['item_name']; ?>
                                                 <div class="text-xs text-slate-500 mt-1 flex gap-3">
-                                                    <span><i class="fas fa-tag mr-1"></i> <?php echo $row['brand']; ?></span>
-                                                    <span><i class="fas fa-map-marker-alt mr-1"></i> <?php echo $row['location']; ?></span>
+                                                    <!-- <span><i class="fas fa-tag mr-1"></i> <?php echo $row['brand']; ?></span> -->
+
+                                                    <!-- <span><i class="fas fa-map-marker-alt mr-1"></i> <?php echo $row['location']; ?></span> -->
+                                                    <span><i class="fas fa-map-marker-alt mr-1"></i> 
+                                                        <?php 
+                                                        // 1. Ambil kode barang dari baris ini
+                                                        $kode = $row['item_code']; 
+
+                                                        // 2. Cari di tabel tb_stocks, gudang mana saja yang punya stok > 0
+                                                        $q_loc = mysqli_query($conn, "SELECT warehouse_name FROM tb_stocks WHERE part_number = '$kode' AND quantity > 0");
+                                                        
+                                                        // 3. Tampung hasilnya ke array
+                                                        $lokasi_array = [];
+                                                        while($l = mysqli_fetch_assoc($q_loc)){
+                                                            $lokasi_array[] = $l['warehouse_name'];
+                                                        }
+
+                                                        // 4. Tampilkan hasilnya (digabung koma)
+                                                        if(!empty($lokasi_array)){
+                                                            echo implode(", ", $lokasi_array); // Contoh Output: ABW1, ABW3
+                                                        } else {
+                                                            echo "-"; // Kalau tidak ada stok di manapun
+                                                        }
+                                                        ?>
+                                                    </span>
+
                                                     <span><i class="fas fa-box mr-1"></i> Stok: <?php echo $row['stock']; ?></span>
                                                 </div>
                                             </td>

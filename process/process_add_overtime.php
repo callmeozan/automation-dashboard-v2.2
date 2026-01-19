@@ -32,6 +32,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               VALUES ('$user_id', '$date_ot', '$time_start', '$time_end', '$duration', '$spk_number', '$activity', 'Pending')";
 
     if (mysqli_query($conn, $query)) {
+
+    // =======================================================
+    // 🔥 SAKLAR NOTIFIKASI WA (MULAI DARI SINI)
+    // =======================================================
+    
+    // Format Tanggal biar enak dibaca (contoh: 15 Jan 2026)
+    $tgl_indo = date('d M Y', strtotime($date_ot));
+    
+    // Rakit Pesan
+    $pesan  = "📢 *INFO LEMBUR BARU*\n\n";
+    $pesan .= "👤 Nama: *$full_name*\n";
+    $pesan .= "📅 Tgl: $tgl_indo\n";
+    $pesan .= "⏰ Jam: $time_start s.d $time_end ($hours Jam)\n";
+    $pesan .= "📋 SPK: " . ($spk_number ? $spk_number : '-') . "\n";
+    $pesan .= "🔧 Ket: $activity\n\n";
+    $pesan .= "Mohon dicek ya Bos! 🙏\n";
+    // $pesan .= "Link: " . $base_url . "overtime.php"; // Opsional kalau base_url sudah diset
+
+    // EKSEKUSI KIRIM (Memanggil fungsi dari config.php)
+    send_wa_group($pesan);
+    
+    // =======================================================
+    // 🔥 SELESAI
+    // =======================================================
+
         header("Location: ../overtime.php?status=success");
     } else {
         header("Location: ../overtime.php?status=error&msg=" . urlencode(mysqli_error($conn)));

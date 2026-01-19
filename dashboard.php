@@ -67,6 +67,7 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
 
 <head>
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#03142c">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automation Command Center</title>
 
@@ -155,7 +156,6 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
             color-scheme: light;
         }
     </style>
-
 </head>
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
@@ -200,7 +200,7 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
                     <span>Projects</span>
                 </a>
 
-                <a href="overtime.php" class="nav-item">
+                <a href="overtime.php" class="nav-item">           
                     <i class="fas fa-clock w-6"></i>
                     <span>Overtime</span>
                 </a>

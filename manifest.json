@@ -1,0 +1,16 @@
+{
+  "name": "Automation Dashboard",
+  "short_name": "AutoDash",
+  "start_url": "index.php",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#03142c",
+  "icons": [
+    {
+      "src": "image/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

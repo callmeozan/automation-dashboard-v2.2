@@ -58,6 +58,50 @@ if (isset($_FILES['file_csv']['name'])) {
             
             if (mysqli_query($conn, $query)) {
                 $success++;
+
+                // =========================================================
+                // [MULAI] LOGIKA UNTUK ISI TABEL STOCKS (ABW1 - ABW7)
+                // =========================================================
+                
+                // 1. Hapus stok lama barang ini di tb_stocks (biar bersih)
+                mysqli_query($conn, "DELETE FROM tb_stocks WHERE part_number = '$code'");
+
+                // 2. Daftar Posisi Kolom CSV (Nama Gudang, Index Qty, Index Lokasi)
+                // ABW1 ada di data[8] dan data[9], ABW2 di data[10] dan data[11], dst.
+                $list_gudang = [
+                    ['ABW1', 8, 9],
+                    ['ABW2', 10, 11],
+                    ['ABW3', 12, 13],
+                    ['ABW4', 14, 15],
+                    ['ABW5', 16, 17],
+                    ['ABW6', 18, 19],
+                    ['ABW7', 20, 21]
+                ];
+
+                // 3. Loop untuk Insert ke tb_stocks
+                foreach ($list_gudang as $gdg) {
+                    $nama_gudang = $gdg[0];
+                    $idx_qty     = $gdg[1];
+                    $idx_loc     = $gdg[2];
+
+                    // Ambil data (Cek apakah kolomnya ada isinya)
+                    $qty_raw = isset($data[$idx_qty]) ? $data[$idx_qty] : 0;
+                    $loc_raw = isset($data[$idx_loc]) ? $data[$idx_loc] : '';
+                    
+                    // Bersihkan angka (hapus koma)
+                    $qty_clean = (int)str_replace(',', '', $qty_raw);
+                    $loc_clean = mysqli_real_escape_string($conn, $loc_raw);
+
+                    // Hanya simpan jika Stok > 0 atau Lokasi ada isinya
+                    if ($qty_clean > 0 || ($loc_clean != '' && $loc_clean != '0')) {
+                        $sql_stock = "INSERT INTO tb_stocks (part_number, warehouse_name, quantity, bin_location) 
+                                      VALUES ('$code', '$nama_gudang', '$qty_clean', '$loc_clean')";
+                        mysqli_query($conn, $sql_stock);
+                    }
+                }
+                // =========================================================
+                // [SELESAI]
+                // =========================================================
             }
         }
         

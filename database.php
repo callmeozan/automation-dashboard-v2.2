@@ -34,6 +34,7 @@ $totalNotif = $countBreakdown + $countOverdue;
 
 <head>
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#03142c">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Database Inventory - Automation Portal</title>
 

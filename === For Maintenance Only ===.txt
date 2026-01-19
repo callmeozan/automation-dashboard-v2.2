@@ -1,0 +1,9 @@
+=== For Maintenance Only ===
+username : admin
+password : admin85296
+
+=== Pass Database Only ===
+password : zaanSkuy!123
+
+=== Pass Delete MasterItem ===
+password : ozanganteng

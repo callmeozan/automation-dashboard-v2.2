@@ -1,5 +1,10 @@
 # Abaikan file koneksi database (SENSITIF!)
 config.php
+test_wa.php
+test_pribadi.php
+generate_dummy.php
+cek_id.php
+check_maintenance.php
 
 # Abaikan folder upload user (Supaya repo tidak berat)
 uploads/

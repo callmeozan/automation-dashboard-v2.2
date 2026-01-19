@@ -79,6 +79,7 @@ $totalNotif = $countBreakdown + $countOverdue;
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="theme-color" content="#03142c">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overtime Request - Automation Portal</title>
 
@@ -325,10 +326,9 @@ $totalNotif = $countBreakdown + $countOverdue;
                                     class="pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm focus:border-emerald-500 outline-none w-full md:w-64 transition shadow-sm">
                             </div>
 
-                        <a href="export/export_overtime_excel.php" target="_blank" 
-                        class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg border border-slate-700 text-sm transition flex items-center gap-2">
+                        <button onclick="downloadExcelOvertime()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg border border-slate-700 text-sm transition flex items-center gap-2">
                             <i class="fas fa-file-excel text-green-500"></i> Export Excel
-                        </a>
+                        </button>
 
                         <button onclick="document.getElementById('modalOvertime').classList.remove('hidden')" 
                                 class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
@@ -488,124 +488,106 @@ $totalNotif = $countBreakdown + $countOverdue;
                             </thead>
                             <tbody class="divide-y divide-slate-700/50" id="tableOvertimeBody">
                                 <?php
-                                // QUERY BARU: Ambil SEMUA data + Nama Lengkap Usernya
-                                // Tidak ada filter 'WHERE user_id', jadi semua muncul.
-                                $query = mysqli_query($conn, "SELECT a.*, b.full_name 
+                                // QUERY UTAMA (Tanpa LIMIT, biarkan ambil semua)
+                                $qHist = mysqli_query($conn, "SELECT a.*, b.full_name 
                                                             FROM tb_overtime a 
                                                             JOIN tb_users b ON a.user_id = b.user_id 
                                                             ORDER BY a.date_ot DESC");
-                                
-                                if (mysqli_num_rows($query) > 0) {
-                                    while ($row = mysqli_fetch_assoc($query)) {
+
+                                // MULAI LOOPING DATA (INI BAGIAN YANG TADI HILANG)
+                                if (mysqli_num_rows($qHist) > 0) {
+                                    while ($row = mysqli_fetch_assoc($qHist)) {
                                         
-                                        // Logika Warna Status
-                                        $statusClass = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"; 
+                                        // Setup Variabel Tampilan (Warna Status & Row Milik Sendiri)
+                                        $statusClass = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
                                         if($row['status'] == 'Approved') $statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
                                         if($row['status'] == 'Rejected') $statusClass = "bg-red-500/10 text-red-400 border-red-500/20";
-                                        
-                                        // Cek apakah ini data saya sendiri? (Opsional: buat styling beda dikit)
+
                                         $isMe = ($row['user_id'] == $_SESSION['user_id']);
-                                        $rowClass = $isMe ? "bg-slate-800/50" : ""; // Kalau punya saya, warnanya agak terang dikit
+                                        $rowClass = $isMe ? "bg-slate-800/50" : "";
                                 ?>
-                                <tr class="hover:bg-slate-700/20 transition <?php echo $rowClass; ?>">
-                                    
-                                    <td class="px-6 py-4 font-bold text-white whitespace-nowrap">
-                                        <div class="flex items-center gap-2">
-                                            <!-- <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] text-slate-300">
-                                                <?php echo substr($row['full_name'], 0, 1); ?>
-                                            </div> -->
-                                            <span><?php echo $row['full_name']; ?></span>
+                                        <tr class="hover:bg-slate-700/20 transition <?php echo $rowClass; ?>">
                                             
-                                            <!-- <?php if($isMe): ?>
-                                                <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-1 rounded ml-1">(Saya)</span>
-                                            <?php endif; ?> -->
-                                        </div>
-                                    </td>
+                                            <td class="px-6 py-4 font-bold text-white whitespace-nowrap">
+                                                <div class="flex items-center gap-2">
+                                                    <span><?php echo $row['full_name']; ?></span>
+                                                </div>
+                                            </td>
 
-                                    <td class="px-6 py-4 text-slate-400 whitespace-nowrap">
-                                        <?php echo date('d M Y', strtotime($row['date_ot'])); ?>
-                                    </td>
-                                    <td class="px-6 py-4 font-mono text-xs text-indigo-400">
-                                        <?php echo $row['spk_number'] ? $row['spk_number'] : '-'; ?>
-                                    </td>
-                                    <td class="px-6 py-4 text-slate-400">
-                                        <?php echo $row['activity']; ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-slate-400">
-                                        <div class="flex items-center gap-2">
-                                            <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_start'])); ?></span>
-                                            <span class="text-slate-600">-</span>
-                                            <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_end'])); ?></span>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="font-bold text-white"><?php echo $row['duration']; ?></span> Jam
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <span class="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider <?php echo $statusClass; ?>">
-                                            <?php echo $row['status']; ?>
-                                        </span>
-                                    </td>
+                                            <td class="px-6 py-4 text-slate-400 whitespace-nowrap">
+                                                <?php echo date('d M Y', strtotime($row['date_ot'])); ?>
+                                            </td>
 
-                                    <td class="px-6 py-4 text-center">
-    <?php 
-    // --- LOGIKA HAK AKSES (REVISI: ADMIN BEBAS EDIT) ---
-    
-    // 1. Cek User
-    $isMyData = ($row['user_id'] == $id_login);
-    $isAdmin  = ($my_role == 'admin' || $my_role == 'section');
+                                            <td class="px-6 py-4 font-mono text-xs text-indigo-400">
+                                                <?php echo $row['spk_number'] ? $row['spk_number'] : '-'; ?>
+                                            </td>
 
-    // 2. Cek Status
-    $isPending = ($row['status'] == 'Pending');
+                                            <td class="px-6 py-4 text-slate-400">
+                                                <?php echo $row['activity']; ?>
+                                            </td>
 
-    // 3. LOGIKA IJIN AKSES:
-    // - User Biasa: HANYA BOLEH jika data milik sendiri DAN status Pending.
-    // - Admin: BOLEH MELAKUKAN APAPUN (Bebas statusnya apa saja).
-    $allowAccess = ($isMyData && $isPending) || $isAdmin;
+                                            <td class="px-6 py-4 whitespace-nowrap text-slate-400">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_start'])); ?></span>
+                                                    <span class="text-slate-600">-</span>
+                                                    <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_end'])); ?></span>
+                                                </div>
+                                            </td>
 
-    if ($allowAccess) { 
-    ?>
-        <div class="flex items-center justify-center gap-2">
-            
-            <button onclick="openEditModal(
-                '<?php echo $row['ot_id']; ?>', 
-                '<?php echo $row['date_ot']; ?>', 
-                '<?php echo $row['time_start']; ?>', 
-                '<?php echo $row['time_end']; ?>', 
-                '<?php echo $row['spk_number']; ?>', 
-                '<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>'
-            )" class="text-blue-400 hover:text-blue-300 transition" title="Edit Data">
-                <i class="fas fa-edit"></i>
-            </button>
+                                            <td class="px-6 py-4">
+                                                <span class="font-bold text-white"><?php echo $row['duration']; ?></span> Jam
+                                            </td>
 
-            <button onclick="confirmDeleteOt('<?php echo $row['ot_id']; ?>')" 
-                    class="text-red-400 hover:text-red-300 transition" title="Hapus Request">
-                <i class="fas fa-trash"></i>
-            </button>
+                                            <td class="px-6 py-4 text-center">
+                                                <span class="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider <?php echo $statusClass; ?>">
+                                                    <?php echo $row['status']; ?>
+                                                </span>
+                                            </td>
 
-        </div>
+                                            <td class="px-6 py-4 text-center">
+                                                <?php 
+                                                // Logika Permission: Admin Bebas, User Cuma Pending & Punya Sendiri
+                                                $isPending = ($row['status'] == 'Pending');
+                                                $isAdmin   = ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section');
+                                                
+                                                $allowAccess = ($isMe && $isPending) || $isAdmin;
 
-    <?php } else { ?>
-        
-        <div class="flex items-center justify-center gap-1 text-xs italic text-slate-600">
-            <?php if (!$isPending): ?>
-                <i class="fas fa-check-double text-emerald-800"></i> <span>Final</span>
-            <?php else: ?>
-                <i class="fas fa-user-lock"></i>
-            <?php endif; ?>
-        </div>
-
-    <?php } ?>
-</td>
-                                </tr>
-                                <?php } 
-                                } else { ?>
+                                                if ($allowAccess) { 
+                                                ?>
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>')" class="text-blue-400 hover:text-blue-300 transition" title="Edit Data">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button onclick="confirmDeleteOt('<?php echo $row['ot_id']; ?>')" class="text-red-400 hover:text-red-300 transition" title="Hapus Request">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                <?php } else { ?>
+                                                    <div class="flex items-center justify-center gap-1 text-xs italic text-slate-600">
+                                                        <?php if (!$isPending): ?>
+                                                            <i class="fas fa-check-double text-emerald-800"></i> <span>Final</span>
+                                                        <?php else: ?>
+                                                            <i class="fas fa-user-lock"></i>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php } ?>
+                                            </td>
+                                        </tr>
+                                <?php 
+                                    } // Tutup While
+                                } else { // Jika Data Kosong
+                                ?>
                                     <tr>
-                                        <td colspan="7" class="px-6 py-8 text-center text-slate-500 italic">There is no overtime history for anyone yet.</td>
+                                        <td colspan="8" class="px-6 py-8 text-center text-slate-500 italic">Belum ada history lembur siapapun.</td>
                                     </tr>
-                                <?php } ?>
+                                <?php } // Tutup Else ?>
                             </tbody>
                         </table>
+
+                        <div class="flex justify-between items-center mt-4 mb-8 px-4" id="paginationContainer">
+                            <div class="text-xs text-slate-500" id="pageInfo">Loading data...</div>
+                            <div id="paginationControls" class="flex gap-1"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -855,30 +837,116 @@ $totalNotif = $countBreakdown + $countOverdue;
     // ============================================================
     //  5. FUNGSI LIVE SEARCH (CARI CEPAT)
     // ============================================================
-    function searchTable() {
-        // 1. Ambil nilai ketikan user
-        var input = document.getElementById("searchInput");
-        var filter = input.value.toUpperCase(); // Ubah jadi huruf besar biar tidak case-sensitive
+    document.addEventListener('DOMContentLoaded', function() {
+    // --- LOGIC PAGINATION & SEARCH (GAYA LAPORAN.PHP) ---
+    const tableBody = document.getElementById('tableOvertimeBody');
+    const searchInput = document.getElementById('searchInput'); // Pastikan ID input search Bapak 'searchInput'
+    const pageInfo = document.getElementById('pageInfo');
+    const paginationControls = document.getElementById('paginationControls');
+
+    if (tableBody) {
+        // Konfigurasi: Tampilkan 50 data per halaman
+        const rowsPerPage = 30; 
         
-        // 2. Ambil tabel dan baris-barisnya
-        var tbody = document.getElementById("tableOvertimeBody");
-        var tr = tbody.getElementsByTagName("tr");
+        // Ambil semua baris data dari tabel
+        let allRows = Array.from(tableBody.querySelectorAll('tr'));
+        let currentPage = 1;
 
-        // 3. Loop semua baris untuk cek isinya
-        for (var i = 0; i < tr.length; i++) {
-            // Ambil text dari baris tersebut (Nama, SPK, Aktivitas, dll gabung jadi satu string)
-            var textContent = tr[i].textContent || tr[i].innerText;
+        function renderTable() {
+            // 1. Ambil kata kunci pencarian
+            const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+
+            // 2. Filter Baris (Cari text di dalam baris)
+            const filteredRows = allRows.filter(row => {
+                const textMatch = row.textContent.toLowerCase().includes(searchText);
+                return textMatch;
+            });
+
+            // 3. Hitung Pagination
+            const totalItems = filteredRows.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage);
+
+            // Reset halaman jika melampaui batas
+            if (currentPage > totalPages) currentPage = 1;
+            if (currentPage < 1 && totalPages > 0) currentPage = 1;
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // 4. Render (Sembunyikan semua, lalu munculkan yang sesuai halaman)
+            allRows.forEach(row => row.style.display = 'none'); // Sembunyikan TOTAL semua
             
-            // Cek apakah ketikan user ada di dalam text tersebut?
-            if (textContent.toUpperCase().indexOf(filter) > -1) {
-                tr[i].style.display = ""; // TAMPILKAN
-            } else {
-                tr[i].style.display = "none"; // SEMBUNYIKAN
-            }
-        }
-    }
+            // Munculkan yang lolos filter & sesuai halaman
+            filteredRows.slice(start, end).forEach(row => {
+                row.style.display = ''; 
+            });
 
-    // ... (Script lain biarkan di atas) ...
+            // 5. Update Info Text
+            if (pageInfo) {
+                if (totalItems === 0) {
+                    pageInfo.innerText = "Tidak ada data yang cocok.";
+                } else {
+                    pageInfo.innerText = `Menampilkan ${start + 1} - ${Math.min(end, totalItems)} dari ${totalItems} data`;
+                }
+            }
+
+            // 6. Render Tombol Angka
+            renderButtons(totalPages);
+        }
+
+        function renderButtons(totalPages) {
+            if (!paginationControls) return;
+            paginationControls.innerHTML = ""; // Bersihkan tombol lama
+            
+            if (totalPages <= 1) return; // Kalau cuma 1 halaman, gak usah muncul tombol
+
+            const createBtn = (text, page, isActive = false, isDisabled = false) => {
+                const btn = document.createElement('button');
+                btn.innerHTML = text; // Pakai innerHTML biar bisa icon
+                // Style tombol persis laporan.php
+                btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+                
+                if (isDisabled) {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.disabled = true;
+                } else {
+                    btn.addEventListener('click', () => {
+                        currentPage = page;
+                        renderTable(); // Render ulang saat klik
+                    });
+                }
+                return btn;
+            };
+
+            // Tombol Prev
+            paginationControls.appendChild(createBtn('<i class="fas fa-chevron-left"></i>', currentPage - 1, false, currentPage === 1));
+
+            // Logic Tombol Angka (Maksimal 5 tombol biar rapi)
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationControls.appendChild(createBtn(i, i, i === currentPage));
+            }
+
+            // Tombol Next
+            paginationControls.appendChild(createBtn('<i class="fas fa-chevron-right"></i>', currentPage + 1, false, currentPage === totalPages));
+        }
+
+        // Event Listener untuk Search (Live Typing)
+        if (searchInput) {
+            // Hapus onkeyup lama di HTML biar gak bentrok
+            searchInput.removeAttribute('onkeyup'); 
+            searchInput.addEventListener('keyup', () => {
+                currentPage = 1; // Reset ke halaman 1 kalau user ngetik
+                renderTable();
+            });
+        }
+
+        // Jalankan Pertama Kali
+        renderTable();
+    }
+});
 
     // --- FUNGSI UPDATE STATUS (ACC / TOLAK) ---
     function updateStatus(id, status) {
@@ -905,6 +973,24 @@ $totalNotif = $countBreakdown + $countOverdue;
                 window.location.href = 'process/process_update_ot.php?id=' + id + '&status=' + status;
             }
         });
+    }
+
+    // FUNGSI EXPORT DENGAN FILTER (MIRIP LAPORAN.PHP)
+    function downloadExcelOvertime() {
+        // 1. Ambil nilai dari kotak pencarian
+        const searchInput = document.getElementById('searchInput');
+        const searchValue = searchInput ? searchInput.value : '';
+
+        // 2. Buat URL ke file export
+        let url = 'export/export_overtime_excel.php?export=true';
+        
+        // 3. Jika ada ketikan pencarian, tempelkan ke URL
+        if (searchValue) {
+            url += '&search=' + encodeURIComponent(searchValue);
+        }
+
+        // 4. Buka tab baru untuk download
+        window.open(url, '_blank');
     }
 </script>
 
