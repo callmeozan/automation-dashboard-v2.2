@@ -566,12 +566,17 @@ $totalNotif = $countBreakdown + $countOverdue;
         }
     </script>
 
-    <nav class="fixed bottom-0 left-0 w-full bg-slate-950 border-t border-slate-800 flex justify-around items-center py-3 z-50 md:hidden safe-area-pb">
+    <button onclick="toggleMobileMenu()" id="mobileMenuBtn" class="fixed bottom-24 right-4 z-[60] md:hidden bg-emerald-600/50 text-white w-12 h-12 rounded-full shadow-lg shadow-emerald-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-1 border-slate-900">
+        <i id="iconOpen" class="fas fa-bars text-lg"></i>
+        <i id="iconClose" class="fas fa-times text-lg hidden"></i>
+    </button>
+
+    <nav id="mobileNavbar" class="fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl flex justify-around items-center py-3 z-50 md:hidden transition-transform duration-300 ease-in-out translate-y-[150%] shadow-2xl">
 
         <?php $page = basename($_SERVER['PHP_SELF']); ?>
 
         <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
-            <i class="fas fa-tachometer-alt text-xl mb-0.5"></i>
+            <i class="fa-solid fa-house-chimney text-xl mb-0.5"></i>
             <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
         </a>
 
@@ -590,12 +595,55 @@ $totalNotif = $countBreakdown + $countOverdue;
             <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
         </a>
 
+        <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
+            <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
+        </a>
+
         <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition">
             <i class="fas fa-sign-out-alt text-xl mb-0.5"></i>
             <span class="text-[9px] font-medium uppercase tracking-wide">Logout</span>
         </a>
 
     </nav>
+
+    <script>
+    function toggleMobileMenu() {
+        const navbar = document.getElementById('mobileNavbar');
+        const iconOpen = document.getElementById('iconOpen');
+        const iconClose = document.getElementById('iconClose');
+        const btn = document.getElementById('mobileMenuBtn');
+
+        // Toggle Class untuk menampilkan/menyembunyikan Navbar
+        // translate-y-[150%] artinya geser ke bawah sejauh 150% dari tingginya (ngumpet)
+        // translate-y-0 artinya kembali ke posisi asal (muncul)
+        if (navbar.classList.contains('translate-y-[150%]')) {
+            // MUNCULKAN MENU
+            navbar.classList.remove('translate-y-[150%]');
+            navbar.classList.add('translate-y-0');
+            
+            // Ubah Icon jadi X
+            iconOpen.classList.add('hidden');
+            iconClose.classList.remove('hidden');
+
+            // Ubah warna tombol jadi merah (biar kelihatan tombol close)
+            btn.classList.remove('bg-emerald-600');
+            btn.classList.add('bg-slate-700');
+        } else {
+            // SEMBUNYIKAN MENU
+            navbar.classList.add('translate-y-[150%]');
+            navbar.classList.remove('translate-y-0');
+            
+            // Ubah Icon jadi Hamburger
+            iconOpen.classList.remove('hidden');
+            iconClose.classList.add('hidden');
+
+            // Balikin warna tombol
+            btn.classList.add('bg-emerald-600');
+            btn.classList.remove('bg-slate-700');
+        }
+    }
+</script>
 </body>
 
 </html>

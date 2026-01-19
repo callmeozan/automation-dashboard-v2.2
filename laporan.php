@@ -1248,7 +1248,7 @@ $totalNotif = $countBreakdown + $countOverdue;
     <?php $page = basename($_SERVER['PHP_SELF']); ?>
 
     <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-tachometer-alt text-lg mb-0.5 group-active:scale-90 transition"></i>
+        <i class="fa-solid fa-house-chimney text-lg mb-0.5 group-active:scale-90 transition"></i>
         <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
     </a>
 
@@ -1265,6 +1265,11 @@ $totalNotif = $countBreakdown + $countOverdue;
     <a href="project.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'project.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
         <i class="fas fa-project-diagram text-lg mb-0.5 group-active:scale-90 transition"></i>
         <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
+    </a>
+
+    <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
+        <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
+        <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
     </a>
 
     <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition group">

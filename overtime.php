@@ -108,7 +108,7 @@ $totalNotif = $countBreakdown + $countOverdue;
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
 
-        <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col hidden md:flex">
+        <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 hidden md:flex">
             <div class="h-16 flex items-center justify-center border-b border-slate-800">
                 <h1 class="text-xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
             </div>
@@ -555,7 +555,7 @@ $totalNotif = $countBreakdown + $countOverdue;
                                                 if ($allowAccess) { 
                                                 ?>
                                                     <div class="flex items-center justify-center gap-2">
-                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>')" class="text-blue-400 hover:text-blue-300 transition" title="Edit Data">
+                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['duration']; ?>', '<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>')" class="text-blue-400 hover:text-blue-300 transition" title="Edit Data">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
                                                         <button onclick="confirmDeleteOt('<?php echo $row['ot_id']; ?>')" class="text-red-400 hover:text-red-300 transition" title="Hapus Request">
@@ -689,12 +689,17 @@ $totalNotif = $countBreakdown + $countOverdue;
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Jam Mulai</label>
-                            <input type="time" name="time_start" id="edit_start" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                            <input type="time" name="time_start" id="edit_start" onchange="calculateEditDuration()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Jam Selesai</label>
-                            <input type="time" name="time_end" id="edit_end" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                            <input type="time" name="time_end" id="edit_end" onchange="calculateEditDuration()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
                         </div>
+                    </div>
+
+                    <div class="bg-slate-800 p-3 rounded border border-slate-700 flex justify-between items-center">
+                        <span class="text-xs text-slate-400">Estimasi Durasi:</span>
+                        <span id="edit_duration" name="duration" required class="text-emerald-400 font-bold text-lg">0.0 Jam</span>
                     </div>
 
                     <div>
@@ -710,6 +715,9 @@ $totalNotif = $countBreakdown + $countOverdue;
             </div>
         </div>
     </div>
+
+<script src="assets/js/ui-sidebar.js"></script>
+<script src="assets/js/ui-modal.js"></script>
 
 <script>
     // ============================================================
@@ -734,6 +742,40 @@ $totalNotif = $countBreakdown + $countOverdue;
             let diffMs = end - start;
             let diffHrs = diffMs / (1000 * 60 * 60); // Konversi ms ke jam
 
+            // Jika kerja lebih dari 4 jam, otomatis kurangi 1 jam
+            if (diffHrs > 4) {
+                diffHrs = diffHrs - 1;
+            }
+
+            display.innerText = diffHrs.toFixed(1) + " Jam";
+        } else {
+            display.innerText = "0.0 Jam";
+        }
+    }
+
+    // Tambahkan fungsi baru ini untuk Modal Edit
+    function calculateEditDuration() {
+        const startVal = document.getElementById('edit_start').value;
+        const endVal = document.getElementById('edit_end').value;
+        const display = document.getElementById('edit_duration');
+
+        if (startVal && endVal) {
+            let start = new Date("2000-01-01 " + startVal);
+            let end = new Date("2000-01-01 " + endVal);
+
+            // Handle lewat tengah malam
+            if (end < start) {
+                end.setDate(end.getDate() + 1);
+            }
+
+            let diffMs = end - start;
+            let diffHrs = diffMs / (1000 * 60 * 60);
+
+            // --- LOGIKA POTONG ISTIRAHAT 1 JAM ---
+            if (diffHrs > 4) {
+                diffHrs = diffHrs - 1;
+            }
+
             display.innerText = diffHrs.toFixed(1) + " Jam";
         } else {
             display.innerText = "0.0 Jam";
@@ -741,11 +783,12 @@ $totalNotif = $countBreakdown + $countOverdue;
     }
 
     // Fungsi Buka Modal Edit
-    function openEditModal(id, date, start, end, spk, activity) {
+    function openEditModal(id, date, start, end, duration, spk, activity) {
         document.getElementById('edit_ot_id').value = id;
         document.getElementById('edit_date').value = date;
         document.getElementById('edit_start').value = start;
         document.getElementById('edit_end').value = end;
+        document.getElementById('edit_duration').innerText = duration + " Jam";
         document.getElementById('edit_spk').value = spk;
         document.getElementById('edit_activity').value = activity;
 
@@ -994,7 +1037,83 @@ $totalNotif = $countBreakdown + $countOverdue;
     }
 </script>
 
-<script src="assets/js/ui-sidebar.js"></script>
-<script src="assets/js/ui-modal.js"></script>
+<button onclick="toggleMobileMenu()" id="mobileMenuBtn" class="fixed bottom-24 right-4 z-[60] md:hidden bg-emerald-600/50 text-white w-12 h-12 rounded-full shadow-lg shadow-emerald-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-1 border-slate-900">
+    <i id="iconOpen" class="fas fa-bars text-lg"></i>
+    <i id="iconClose" class="fas fa-times text-lg hidden"></i>
+</button>
+
+<nav id="mobileNavbar" class="fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl flex justify-around items-center py-3 z-50 md:hidden transition-transform duration-300 ease-in-out translate-y-[150%] shadow-2xl">
+
+        <?php $page = basename($_SERVER['PHP_SELF']); ?>
+
+        <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
+            <i class="fa-solid fa-house-chimney text-xl mb-0.5"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
+        </a>
+
+        <a href="database.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'database.php' || $page == 'master_items.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
+            <i class="fas fa-database text-xl mb-0.5"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Database</span>
+        </a>
+
+        <a href="laporan.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'laporan.php' || $page == 'my_laporan.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
+            <i class="fas fa-clipboard-list text-xl mb-0.5"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Report</span>
+        </a>
+
+        <a href="project.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'project.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
+            <i class="fas fa-project-diagram text-xl mb-0.5"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
+        </a>
+
+        <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
+            <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
+        </a>
+
+        <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition">
+            <i class="fas fa-sign-out-alt text-xl mb-0.5"></i>
+            <span class="text-[9px] font-medium uppercase tracking-wide">Logout</span>
+        </a>
+
+    </nav>
+
+<script>
+    function toggleMobileMenu() {
+        const navbar = document.getElementById('mobileNavbar');
+        const iconOpen = document.getElementById('iconOpen');
+        const iconClose = document.getElementById('iconClose');
+        const btn = document.getElementById('mobileMenuBtn');
+
+        // Toggle Class untuk menampilkan/menyembunyikan Navbar
+        // translate-y-[150%] artinya geser ke bawah sejauh 150% dari tingginya (ngumpet)
+        // translate-y-0 artinya kembali ke posisi asal (muncul)
+        if (navbar.classList.contains('translate-y-[150%]')) {
+            // MUNCULKAN MENU
+            navbar.classList.remove('translate-y-[150%]');
+            navbar.classList.add('translate-y-0');
+            
+            // Ubah Icon jadi X
+            iconOpen.classList.add('hidden');
+            iconClose.classList.remove('hidden');
+
+            // Ubah warna tombol jadi merah (biar kelihatan tombol close)
+            btn.classList.remove('bg-emerald-600');
+            btn.classList.add('bg-slate-700');
+        } else {
+            // SEMBUNYIKAN MENU
+            navbar.classList.add('translate-y-[150%]');
+            navbar.classList.remove('translate-y-0');
+            
+            // Ubah Icon jadi Hamburger
+            iconOpen.classList.remove('hidden');
+            iconClose.classList.add('hidden');
+
+            // Balikin warna tombol
+            btn.classList.add('bg-emerald-600');
+            btn.classList.remove('bg-slate-700');
+        }
+    }
+</script>
 </body>
 </html>

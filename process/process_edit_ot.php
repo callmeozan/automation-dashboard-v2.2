@@ -20,6 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $date_ot    = $_POST['date_ot'];
     $time_start = $_POST['time_start'];
     $time_end   = $_POST['time_end'];
+    $duration   = $_POST['duration'];
     $spk_number = $_POST['spk_number'];
     $activity   = mysqli_real_escape_string($conn, $_POST['activity']);
     
@@ -48,8 +49,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($end_ts < $start_ts) {
         $end_ts += 24 * 60 * 60; 
     }
-    
-    $duration = number_format(($end_ts - $start_ts) / 3600, 1);
+
+    $raw_duration = ($end_ts - $start_ts) / 3600;
+    if ($raw_duration > 4) {
+        $raw_duration = $raw_duration - 1;
+    }
+
+    $duration = number_format($raw_duration, 1);
 
     // --- D. EKSEKUSI QUERY UPDATE ---
     $query = "UPDATE tb_overtime SET 

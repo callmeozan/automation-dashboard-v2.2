@@ -23,6 +23,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Hitung selisih detik dibagi 3600 untuk dapat jam (desimal)
     $duration = ($end_ts - $start_ts) / 3600;
+
+    if ($duration > 4) {
+        $duration = $duration - 1;
+    }
     
     // Format jadi 1 angka di belakang koma (misal 2.5)
     $duration = number_format($duration, 1);
@@ -38,20 +42,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // =======================================================
     
     // Format Tanggal biar enak dibaca (contoh: 15 Jan 2026)
-    $tgl_indo = date('d M Y', strtotime($date_ot));
+    // $tgl_indo = date('d M Y', strtotime($date_ot));
     
     // Rakit Pesan
-    $pesan  = "📢 *INFO LEMBUR BARU*\n\n";
-    $pesan .= "👤 Nama: *$full_name*\n";
-    $pesan .= "📅 Tgl: $tgl_indo\n";
-    $pesan .= "⏰ Jam: $time_start s.d $time_end ($hours Jam)\n";
-    $pesan .= "📋 SPK: " . ($spk_number ? $spk_number : '-') . "\n";
-    $pesan .= "🔧 Ket: $activity\n\n";
-    $pesan .= "Mohon dicek ya Bos! 🙏\n";
+    // $pesan  = "📢 *INFO LEMBUR BARU*\n\n";
+    // $pesan .= "👤 Nama: *$full_name*\n";
+    // $pesan .= "📅 Tgl: $tgl_indo\n";
+    // $pesan .= "⏰ Jam: $time_start s.d $time_end ($hours Jam)\n";
+    // $pesan .= "📋 SPK: " . ($spk_number ? $spk_number : '-') . "\n";
+    // $pesan .= "🔧 Ket: $activity\n\n";
+    // $pesan .= "Mohon dicek ya Bos! 🙏\n";
     // $pesan .= "Link: " . $base_url . "overtime.php"; // Opsional kalau base_url sudah diset
 
     // EKSEKUSI KIRIM (Memanggil fungsi dari config.php)
-    send_wa_group($pesan);
+    // send_wa_group($pesan);
     
     // =======================================================
     // 🔥 SELESAI
