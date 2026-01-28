@@ -11,12 +11,29 @@ if (isset($_FILES['file_csv']['name'])) {
     // Cek ukuran file
     if ($_FILES['file_csv']['size'] > 0) {
         
+        // $file = fopen($filename, "r");
+        // $count = 0;
+        // $success = 0;
+        $cek_file = fopen($filename, "r");
+        $baris_pertama = fgets($cek_file);
+        fclose($cek_file);
+
+        $jumlah_koma = substr_count($baris_pertama, ",");
+        $jumlah_titik_koma = substr_count($baris_pertama, ";");
+
+        if ($jumlah_titik_koma > $jumlah_koma) {
+            $delimiter = ";"; 
+        } else {
+            $delimiter = ",";
+        }
+
         $file = fopen($filename, "r");
         $count = 0;
         $success = 0;
 
         // Baca baris demi baris
-        while (($data = fgetcsv($file, 10000, ",")) !== FALSE) {
+        // while (($data = fgetcsv($file, 10000, ",")) !== FALSE) {
+        while (($data = fgetcsv($file, 10000, $delimiter)) !== FALSE) {
             $count++;
             
             // Skip Header (Baris 1) atau jika PART_NUM kosong
@@ -34,19 +51,26 @@ if (isset($_FILES['file_csv']['name'])) {
             // [7] TOTAL            -> stock
             // [9] LOCABW1          -> location
             
-            $code  = mysqli_real_escape_string($conn, $data[0]);
-            $name  = mysqli_real_escape_string($conn, $data[1]);
-            $spec  = mysqli_real_escape_string($conn, $data[2]);
-            $unit  = mysqli_real_escape_string($conn, $data[4]);
+            $code  = mysqli_real_escape_string($conn, $data[0] ?? '');
+            $name  = mysqli_real_escape_string($conn, $data[1] ?? '');
+            $spec  = mysqli_real_escape_string($conn, $data[2] ?? '');
+            $unit  = mysqli_real_escape_string($conn, $data[4] ?? '');
+
+            $raw_min   = $data[5] ?? '0'; 
+            $raw_stock = $data[7] ?? '0';
             
             // Bersihkan angka dari koma (misal: 1,600 jadi 1600)
-            $min   = (int)str_replace(',', '', $data[5]);
-            $stock = (int)str_replace(',', '', $data[7]);
+            $min   = (int)str_replace([',', ' '], '', $raw_min);
+            $stock = (int)str_replace([',', ' '], '', $raw_stock);
             
-            $loc   = mysqli_real_escape_string($conn, $data[9]);
+            $loc   = mysqli_real_escape_string($conn, $data[9] ?? '');
             
             // Brand (Opsional: Bisa diambil dari deskripsi atau dikosongkan)
             $brand = ""; 
+
+            if (empty($code)) {
+                continue;
+            }
 
             // Query Insert (ON DUPLICATE KEY UPDATE biar kalau data double, stoknya diupdate)
             $query = "INSERT INTO tb_master_items 

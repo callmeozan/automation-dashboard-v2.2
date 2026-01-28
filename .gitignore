@@ -5,6 +5,8 @@ test_pribadi.php
 generate_dummy.php
 cek_id.php
 check_maintenance.php
+cleanup.php
+inspect_ghost.php
 
 # Abaikan folder upload user (Supaya repo tidak berat)
 uploads/

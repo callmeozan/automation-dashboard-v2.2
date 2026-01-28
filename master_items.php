@@ -20,7 +20,7 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
 }
 
 // --- 2. LOGIKA PAGINATION (PHP) ---
-$limit = 10; // Tampil 10 data per halaman
+$limit = 50; // Tampil 50 data per halaman
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
@@ -33,7 +33,9 @@ $totalPages = ceil($totalData / $limit);
 
 // --- 3. QUERY DATA UTAMA (Pakai LIMIT) ---
 // Ini rahasia cepatnya: Cuma ambil 10 baris dari ribuan data
-$query = mysqli_query($conn, "SELECT * FROM tb_master_items $searchQuery ORDER BY item_name ASC LIMIT $limit OFFSET $offset");
+// $query = mysqli_query($conn, "SELECT * FROM tb_master_items $searchQuery ORDER BY item_name ASC LIMIT $limit OFFSET $offset");
+
+$query = mysqli_query($conn, "SELECT * FROM tb_master_items $searchQuery ORDER BY item_id ASC LIMIT $limit OFFSET $offset");
 
 // Logic Notifikasi (Tetap Ada)
 $queryNotif1 = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_daily_reports WHERE category='Breakdown' AND status='Open'");
