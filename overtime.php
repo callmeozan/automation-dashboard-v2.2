@@ -1,82 +1,66 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit();
-}
-include 'config.php';
+// 1. Panggil Satpam & Koneksi Global
+include 'layouts/auth_and_config.php';
 
-// --- LOGIKA STATISTIK MINI (CUTOFF 15-15) ---
-$my_id = $_SESSION['user_id'];
+// --- PERBAIKAN ERROR $my_role ---
+// Kita ambil role dari session yang sudah divalidasi di layouts/auth_and_config.php
+$my_role = $_SESSION['role'] ?? 'user'; 
+$my_id   = $_SESSION['user_id'];
+// --------------------------------
+
+// --- 2. LOGIKA KHUSUS OVERTIME (CUTOFF 15-15) ---
 $tgl_hari_ini = date('d');
-$bln_hari_ini = date('m');
-$thn_hari_ini = date('Y');
-
-// 1. Tentukan Range Tanggal Periode Ini (Cutoff tgl 15)
-// Jika hari ini tanggal > 15 (misal tgl 16 Jan), berarti masuk periode: 16 Jan - 15 Feb
-// Jika hari ini tanggal <= 15 (misal tgl 10 Feb), berarti masuk periode: 16 Jan - 15 Feb
 if ($tgl_hari_ini > 15) {
-    $periode_start = date('Y-m-16'); // 16 Bulan Ini
-    $periode_end   = date('Y-m-15', strtotime('+1 month')); // 15 Bulan Depan
+    $periode_start = date('Y-m-16');
+    $periode_end   = date('Y-m-15', strtotime('+1 month'));
 } else {
-    $periode_start = date('Y-m-16', strtotime('-1 month')); // 16 Bulan Lalu
-    $periode_end   = date('Y-m-15'); // 15 Bulan Ini
+    $periode_start = date('Y-m-16', strtotime('-1 month'));
+    $periode_end   = date('Y-m-15');
 }
-
-// Format Tampilan Periode (Contoh: "16 Jan - 15 Feb")
 $label_periode = date('d M', strtotime($periode_start)) . " - " . date('d M', strtotime($periode_end));
 
-// 2. Hitung Total Jam (Approved) DALAM PERIODE CUTOFF INI
-$qJam = mysqli_query($conn, "SELECT SUM(duration) as total_jam 
-                             FROM tb_overtime 
-                             WHERE user_id='$my_id' 
-                             AND status='Approved' 
-                             AND date_ot BETWEEN '$periode_start' AND '$periode_end'");
+// Hitung Jam Approved periode ini
+$qJam = mysqli_query($conn, "SELECT SUM(duration) as total_jam FROM tb_overtime WHERE user_id='$my_id' AND status='Approved' AND date_ot BETWEEN '$periode_start' AND '$periode_end'");
 $dJam = mysqli_fetch_assoc($qJam);
 $total_jam_saya = $dJam['total_jam'] ? floatval($dJam['total_jam']) : 0;
 
-// 3. Logika Kuota & Progress Bar (Max 15 Jam)
-$max_quota = 15;
-$persen_pakai = ($total_jam_saya / $max_quota) * 100;
-if ($persen_pakai > 100) $persen_pakai = 100; // Mentok di 100% biar bar ngga bablas
-
-// Tentukan Warna Bar berdasarkan tingkat bahaya
-$bar_color = "bg-emerald-500"; // Aman
-if ($total_jam_saya >= 10) $bar_color = "bg-yellow-500"; // Warning (Hampir habis)
-if ($total_jam_saya >= 15) $bar_color = "bg-red-500";    // Bahaya (Habis/Over)
-
-// 4. Hitung Frekuensi & Pending (Sama kayak sebelumnya)
-$qFreq = mysqli_query($conn, "SELECT COUNT(*) as total_freq 
-                              FROM tb_overtime 
-                              WHERE user_id='$my_id' AND status='Approved' 
-                              AND date_ot BETWEEN '$periode_start' AND '$periode_end'");
-$dFreq = mysqli_fetch_assoc($qFreq);
-$total_freq_saya = $dFreq['total_freq'];
+// Hitung Frekuensi & Pending (Tetap Pertahankan)
+$qFreq = mysqli_query($conn, "SELECT COUNT(*) as total_freq FROM tb_overtime WHERE user_id='$my_id' AND status='Approved' AND date_ot BETWEEN '$periode_start' AND '$periode_end'");
+$total_freq_saya = mysqli_fetch_assoc($qFreq)['total_freq'] ?? 0;
 
 $qPend = mysqli_query($conn, "SELECT COUNT(*) as total_pending FROM tb_overtime WHERE user_id='$my_id' AND status='Pending'");
-$dPend = mysqli_fetch_assoc($qPend);
-$total_pending_saya = $dPend['total_pending'];
+$total_pending_saya = mysqli_fetch_assoc($qPend)['total_pending'] ?? 0;
 
-// Ambil Data User Login
-$id_login = $_SESSION['user_id'];
-$my_role  = $_SESSION['role']; // admin, section, atau user biasa
+// --- 3. KONFIGURASI LAYOUT ---
+$pageTitle = "Overtime Request";
 
-// 5. LOGIC NOTIFIKASI DETAILED
-// A. Ambil Data Breakdown (Max 5 terbaru)
-$queryBreakdownList = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE category='Breakdown' AND status='Open' ORDER BY date_log DESC LIMIT 5");
-$countBreakdown = mysqli_num_rows($queryBreakdownList); // Hitung jumlahnya
+// [SLOT HEADER] Tombol Request Overtime
+$extraMenu = '
+    <div class="flex items-center gap-3">
+        <button onclick="openModal(\'modalOvertime\')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+            <i class="fas fa-plus"></i> <span class="hidden sm:inline">Request Overtime</span>
+        </button>
+    </div>';
 
-// B. Ambil Data Project Overdue (Max 5 terparah)
-$today = date('Y-m-d');
-$queryOverdueList = mysqli_query($conn, "SELECT * FROM tb_projects WHERE due_date < '$today' AND status != 'Done' ORDER BY due_date ASC LIMIT 5");
-$countOverdue = mysqli_num_rows($queryOverdueList); // Hitung jumlahnya
-
-// Total Angka Notif (Untuk Badge Merah)
-$totalNotif = $countBreakdown + $countOverdue;
+$extraHead = '
+    <style>
+        input[type="date"], input[type="time"] { color-scheme: dark; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+';
 ?>
+
+<head>
+    <meta name="turbo-cache-control" content="no-preview">
+</head>
 
 <!DOCTYPE html>
 <html lang="id">
+
+<!-- HEAD ADA DISINI -->
+<?php include 'layouts/head.php'; ?>
+
 <head>
     <meta charset="UTF-8">
     <meta name="theme-color" content="#03142c">
@@ -108,210 +92,16 @@ $totalNotif = $countBreakdown + $countOverdue;
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
 
-        <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 hidden md:flex">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800">
-                <h1 class="text-xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
-            </div>
-
-            <!-- SIDEBAR ADA DISINI -->
-            <nav class="flex-1 px-4 py-6 space-y-2">
-                <a href="dashboard.php" class="nav-item">
-                    <i class="fas fa-tachometer-alt w-6"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-
-                <div class="relative">
-                    <button onclick="toggleDbMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-database w-6 group-hover:text-emerald-400 transition"></i>
-                            <span class="group-hover:text-white transition">Database</span>
-                        </div>
-                        <i id="arrowDb" class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200"></i>
-                    </button>
-
-                    <div id="dbSubmenu" class="hidden pl-10 space-y-1 mt-1 bg-slate-900/50 py-2 border-l border-slate-800 ml-3">
-                        <a href="database.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Machine / Assets
-                        </a>
-                        <a href="master_items.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Master Items
-                        </a>
-                    </div>
-                </div>
-
-                <a href="laporan.php" class="nav-item">
-                    <i class="fas fa-clipboard-list w-6"></i>
-                    <span>Daily Report</span>
-                </a>
-
-                <a href="project.php" class="nav-item">
-                    <i class="fas fa-project-diagram w-6"></i>
-                    <span>Projects</span>
-                </a>
-
-                <a href="#" class="nav-item active">
-                    <i class="fas fa-clock w-6"></i>
-                    <span>Overtime</span>
-                </a>
-
-                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                    <a href="dashboard.php?open_modal=adduser" class="nav-item hover:text-emerald-400 transition">
-                        <i class="fa-solid fa-user-plus w-6"></i>
-                        <span>Add User</span>
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
-                    <a href="manage_users.php" class="nav-item">
-                        <i class="fas fa-users-cog w-6"></i> <span class="font-medium">User Management</span>
-                    </a>
-                <?php endif; ?>
-
-                <a href="logout.php" class="nav-item">
-                    <i class="fas fa-solid fa-right-from-bracket w-6"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
-
-            <!-- USER PROFILE ADA DISINI -->
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 border border-slate-500 overflow-hidden flex items-center justify-center">
-                        <img src="image/default_profile.png"
-                            alt="User Profile"
-                            class="w-full h-full object-cover scale-125 transition-transform hover:scale-150">
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-white">
-                            <?php echo isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Guest'; ?>
-                        </p>
-                        <p class="text-xs text-emerald-500">Online</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
+        <!-- SIDEBAR ADA DISINI -->
+         <?php include 'layouts/sidebar.php'; ?>
 
         <main class="flex-1 flex flex-col overflow-y-auto relative">
 
         <!-- HEADER ADA DISINI -->
-            <header class="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-10 px-8 flex items-center justify-between">
-
-                <div class="flex items-center gap-4">
-                    <button id="sidebarToggle" class="text-slate-400 hover:text-white mr-4 transition-transform active:scale-95">
-                    </button>
-                    <h2 class="text-lg font-medium text-white">Overtime Request</h2>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    
-                    <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4 mr-2">
-                        <!-- Total Report: <span class="text-white font-bold">
-                            <?php
-                            $countQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM tb_daily_reports");
-                                if ($countQuery) {
-                                    $countData = mysqli_fetch_assoc($countQuery);
-                                    echo $countData['total'];
-                                } else {
-                                     echo "Query gagal";
-                                }
-                            ?>
-                        </span> -->
-                    </div>
-
-                    <!-- <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4 mr-2">
-                        Total Report: <span class="text-white font-bold">
-                            <?php
-                            $countQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM tb_daily_reports");
-                                if ($countQuery) {
-                                    $countData = mysqli_fetch_assoc($countQuery);
-                                    echo $countData['total'];
-                                } else {
-                                     echo "Query gagal";
-                                }
-                            ?>
-                        </span>
-                    </div> -->
-                    
-                    <div class="relative">
-
-                        <button onclick="toggleNotif()" class="p-2 text-slate-400 hover:text-white relative transition focus:outline-none">
-                            <i class="fas fa-bell"></i>
-
-                            <?php if ($totalNotif > 0): ?>
-                                <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
-                            <?php endif; ?>
-                        </button>
-
-                        <button onclick="toggleTheme()" class="p-2 text-slate-400 hover:text-white transition focus:outline-none mr-2" title="Ganti Tema">
-                            <i id="themeIcon" class="fas fa-sun"></i>
-                        </button>
-
-                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden origin-top-right transform transition-all">
-                            <div class="px-4 py-3 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h3>
-                                <span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded"><?php echo $totalNotif; ?> New</span>
-                            </div>
-
-                            <div class="max-h-80 overflow-y-auto custom-scroll">
-                                <?php if ($totalNotif == 0): ?>
-                                    <div class="px-4 py-6 text-center text-slate-500">
-                                        <i class="fas fa-check-circle text-2xl mb-2 text-emerald-500/50"></i>
-                                        <p class="text-xs">Semua sistem aman.</p>
-                                    </div>
-                                <?php else: ?>
-
-                                    <?php if ($countBreakdown > 0): ?>
-                                        <div class="px-4 py-2 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Mesin Breakdown (<?php echo $countBreakdown; ?>)
-                                        </div>
-                                        <?php while ($rowBD = mysqli_fetch_assoc($queryBreakdownList)): ?>
-                                            <a href="laporan.php" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-red-500/20 p-1.5 rounded text-red-400 mt-0.5 group-hover:bg-red-500 group-hover:text-white transition"><i class="fas fa-car-crash text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowBD['machine_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400 line-clamp-1"><?php echo $rowBD['problem']; ?></p>
-                                                        <p class="text-[10px] text-red-400 mt-1">Sejak: <?php echo date('d M, H:i', strtotime($rowBD['date_log'] . ' ' . $rowBD['time_start'])); ?></p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-
-                                    <?php if ($countOverdue > 0): ?>
-                                        <div class="px-4 py-2 bg-orange-500/10 text-orange-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Project Overdue (<?php echo $countOverdue; ?>)
-                                        </div>
-                                        <?php while ($rowOD = mysqli_fetch_assoc($queryOverdueList)): ?>
-                                            <a href="#table-project" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-orange-500/20 p-1.5 rounded text-orange-400 mt-0.5 group-hover:bg-orange-500 group-hover:text-white transition"><i class="far fa-clock text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowOD['project_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400">Lead: <?php echo explode(',', $rowOD['team_members'])[0]; ?></p>
-
-                                                        <?php
-                                                        $due = strtotime($rowOD['due_date']);
-                                                        $now = time();
-                                                        $daysLate = floor(($now - $due) / (60 * 60 * 24));
-                                                        ?>
-                                                        <p class="text-[10px] text-orange-400 mt-1 font-bold">Telat <?php echo $daysLate; ?> hari (<?php echo date('d M', $due); ?>)</p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 fade-in">
-                <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
+                <!-- <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
                     <div>
                         <h3 class="text-2xl font-bold text-white">Overtime Log</h3>
                         <p class="text-sm text-slate-400 mt-1">Recapitulation of overtime hours based on SPK.</p>
@@ -322,7 +112,7 @@ $totalNotif = $countBreakdown + $countOverdue;
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 group-focus-within:text-emerald-500 transition">
                                     <i class="fas fa-search"></i>
                                 </span>
-                                <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search Name, SPK, Activity..." 
+                                <input type="text" id="searchInput" placeholder="Search Name, SPK, Activity..." 
                                     class="pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm focus:border-emerald-500 outline-none w-full md:w-64 transition shadow-sm">
                             </div>
 
@@ -335,7 +125,39 @@ $totalNotif = $countBreakdown + $countOverdue;
                             <i class="fas fa-plus"></i> Request Overtime
                         </button>
                     </div>
+                </div> -->
+
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-white">Overtime Log</h3>
+                    <p class="text-sm text-slate-400 mt-1">Recapitulation of overtime hours based on SPK.</p>
                 </div>
+
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                    
+                    <div class="relative group w-full sm:w-64">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 group-focus-within:text-emerald-500 transition">
+                            <i class="fas fa-search text-sm"></i>
+                        </span>
+                        <input type="text" id="searchInput" placeholder="Search Name, SPK..." 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 text-white rounded-xl text-sm focus:border-emerald-500 outline-none transition shadow-sm">
+                    </div>
+
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="downloadExcelOvertime()" 
+                            class="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 text-sm transition flex items-center justify-center gap-2">
+                            <i class="fas fa-file-excel text-green-500"></i>
+                            <span>Export</span>
+                        </button>
+
+                        <button onclick="openModal('modalOvertime')" 
+                            class="flex-[1.5] sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 text-nowrap">
+                            <i class="fas fa-plus"></i>
+                            <span>Request <span class="hidden xs:inline">Overtime</span></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
                 <?php if ($my_role == 'admin' || $my_role == 'section'): ?>
                     <div class="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-6 mb-8">
@@ -351,6 +173,7 @@ $totalNotif = $countBreakdown + $countOverdue;
                                         <th class="px-4 py-3">Date</th>
                                         <th class="px-4 py-3">Duration</th>
                                         <th class="px-4 py-3">Activity</th>
+                                        <th class="px-4 py-3">Evidence</th>
                                         <th class="px-4 py-3 text-center">Action</th>
                                     </tr>
                                 </thead>
@@ -375,6 +198,46 @@ $totalNotif = $countBreakdown + $countOverdue;
                                             </span>
                                         </td>
                                         <td class="px-4 py-3 text-xs"><?php echo $rowA['activity']; ?></td>
+                                        
+                                        <td class="px-4 py-3 align-middle">
+                                            <?php if (!empty($rowA['evidence'])): ?>
+                                                <div class="flex flex-col gap-1.5">
+                                                    <?php 
+                                                    $files = explode(',', $rowA['evidence']);
+                                                    foreach ($files as $file): 
+                                                        $file = trim($file);
+                                                        if(empty($file)) continue;
+
+                                                        $isPdf = (strpos(strtolower($file), '.pdf') !== false);
+                                                        $iconClass = $isPdf ? 'fa-file-pdf text-red-400' : 'fa-image text-blue-400';
+                                                        // Potong nama file biar gak kepanjangan
+                                                        $displayName = (strlen($file) > 18) ? substr($file, 11, 15) . '...' : substr($file, 11);
+                                                    ?>
+                                                        <a href="uploads/evidence/<?php echo $file; ?>" target="_blank" 
+                                                        class="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-700 rounded hover:border-emerald-500 hover:bg-slate-800 transition group w-full max-w-[180px] shadow-sm relative overflow-hidden">
+                                                            
+                                                            <div class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 group-hover:border-slate-600">
+                                                                <i class="fas <?php echo $iconClass; ?> text-[10px]"></i>
+                                                            </div>
+
+                                                            <div class="flex-1 min-w-0 leading-none">
+                                                                <p class="text-[10px] text-slate-300 font-medium truncate group-hover:text-white transition mb-0.5" title="<?php echo $file; ?>">
+                                                                    <?php echo $displayName; ?>
+                                                                </p>
+                                                                <p class="text-[9px] text-slate-500 group-hover:text-emerald-400 transition flex items-center gap-1">
+                                                                    <i class="fas fa-search text-[8px]"></i> Klik untuk lihat
+                                                                </p>
+                                                            </div>
+
+                                                            <div class="absolute right-0 top-0 h-full w-0.5 bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                        </a>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-slate-600 text-[10px] italic opacity-50">- Tidak ada lampiran -</span>
+                                            <?php endif; ?>
+                                        </td>
+
                                         <td class="px-4 py-3 flex gap-2 justify-center">
                                             
                                             <!-- <a href="process/process_update_ot.php?id=<?php echo $rowA['ot_id']; ?>&status=Approved" 
@@ -410,7 +273,17 @@ $totalNotif = $countBreakdown + $countOverdue;
                                     <?php 
                                         }
                                     } else {
-                                        echo '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-500 italic">There are no new overtime requests.</td></tr>';
+                                        // echo 
+                                        // '<tr>
+                                        //     <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic bg-slate-800/50">
+                                        //         <div class="flex flex-col items-center justify-center gap-2">
+                                        //             <i class="fas fa-inbox text-3xl text-slate-700 mb-2"></i>
+                                        //             <span>There are no new overtime requests.</span>
+                                        //         </div>
+                                        //     </td>
+                                        // </tr>';
+                                        // '<tr><td colspan="6" class="px-6 py-12 text-center text-slate-500 italic bg-slate-800/50">There are no new overtime requests.</td></tr>';
+                                    echo '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-500 italic">There are no new overtime requests.</td></tr>';
                                     }
                                     ?>
                                 </tbody>
@@ -474,7 +347,7 @@ $totalNotif = $countBreakdown + $countOverdue;
                 <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm text-slate-400">
-                            <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
+                            <!-- <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
                                 <tr>
                                     <th class="px-6 py-4">Name</th>
                                     <th class="px-6 py-4">Date</th>
@@ -482,11 +355,24 @@ $totalNotif = $countBreakdown + $countOverdue;
                                     <th class="px-6 py-4">Activity / Job Desc</th>
                                     <th class="px-6 py-4">Time</th>
                                     <th class="px-6 py-4">Total</th>
+                                    <th class="px-6 py-4">Evidence</th>
+                                    <th class="px-6 py-4 text-center">Status</th>
+                                    <th class="px-6 py-4 text-center">Action</th>
+                                </tr>
+                            </thead> -->
+
+                            <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
+                                <tr>
+                                    <th class="px-6 py-4 w-10"></th> <th class="px-6 py-4">Name / SPK</th>
+                                    <th class="px-6 py-4">Date</th>
+                                    <th class="px-6 py-4">Time</th>
+                                    <th class="px-6 py-4">Total</th>
                                     <th class="px-6 py-4 text-center">Status</th>
                                     <th class="px-6 py-4 text-center">Action</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-700/50" id="tableOvertimeBody">
+
+                            <!-- <tbody class="divide-y divide-slate-700/50" id="tableOvertimeBody">
                                 <?php
                                 // QUERY UTAMA (Tanpa LIMIT, biarkan ambil semua)
                                 $qHist = mysqli_query($conn, "SELECT a.*, b.full_name 
@@ -538,6 +424,28 @@ $totalNotif = $countBreakdown + $countOverdue;
                                                 <span class="font-bold text-white"><?php echo $row['duration']; ?></span> Jam
                                             </td>
 
+                                            <td class="px-6 py-4">
+                                                <?php if (!empty($row['evidence'])): ?>
+                                                    <div class="flex flex-col gap-1">
+                                                        <?php 
+                                                        // 1. Pecah nama file (karena dipisah koma)
+                                                        $files = explode(',', $row['evidence']);
+                                                        
+                                                        // 2. Loop untuk menampilkan link setiap file
+                                                        foreach ($files as $index => $file): 
+                                                            $file = trim($file); // Hapus spasi jaga-jaga
+                                                        ?>
+                                                            <a href="uploads/evidence/<?php echo $file; ?>" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1 group">
+                                                                <i class="fas fa-paperclip group-hover:text-emerald-400 transition"></i> 
+                                                                <span>Lihat File <?php echo $index + 1; ?></span>
+                                                            </a>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="text-slate-600 text-xs italic opacity-50">- Kosong -</span>
+                                                <?php endif; ?>
+                                            </td>
+
                                             <td class="px-6 py-4 text-center">
                                                 <span class="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider <?php echo $statusClass; ?>">
                                                     <?php echo $row['status']; ?>
@@ -581,7 +489,151 @@ $totalNotif = $countBreakdown + $countOverdue;
                                         <td colspan="8" class="px-6 py-8 text-center text-slate-500 italic">Belum ada history lembur siapapun.</td>
                                     </tr>
                                 <?php } // Tutup Else ?>
+                            </tbody> -->
+
+                            <tbody class="divide-y divide-slate-700/50" id="tableOvertimeBody">
+                                <?php
+                                $qHist = mysqli_query($conn, "SELECT a.*, b.full_name 
+                                                            FROM tb_overtime a 
+                                                            JOIN tb_users b ON a.user_id = b.user_id 
+                                                            ORDER BY a.date_ot DESC");
+
+                                if (mysqli_num_rows($qHist) > 0) {
+                                    while ($row = mysqli_fetch_assoc($qHist)) {
+                                        $id = $row['ot_id'];
+                                        
+                                        // Warna Status
+                                        $statusClass = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+                                        if($row['status'] == 'Approved') $statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                                        if($row['status'] == 'Rejected') $statusClass = "bg-red-500/10 text-red-400 border-red-500/20";
+
+                                        $isMe = ($row['user_id'] == $_SESSION['user_id']);
+                                        $rowClass = $isMe ? "bg-slate-800/50" : "";
+                                ?>
+                                        <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500 <?php echo $rowClass; ?>">
+                                            
+                                            <td class="px-6 py-4 text-center">
+                                                <button onclick="toggleDetail('ot<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">
+                                                    <i class="fas fa-plus text-xs transition-transform" id="icon-ot<?php echo $id; ?>"></i>
+                                                </button>
+                                            </td>
+
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="font-bold text-white"><?php echo $row['full_name']; ?></div>
+                                                <div class="text-xs text-indigo-400 font-mono mt-0.5">
+                                                    <?php echo $row['spk_number'] ? $row['spk_number'] : '- No SPK -'; ?>
+                                                </div>
+                                            </td>
+
+                                            <td class="px-6 py-4 text-slate-400 whitespace-nowrap">
+                                                <?php echo date('d M Y', strtotime($row['date_ot'])); ?>
+                                            </td>
+
+                                            <td class="px-6 py-4 whitespace-nowrap text-slate-400">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_start'])); ?></span>
+                                                    <span class="text-slate-600">-</span>
+                                                    <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_end'])); ?></span>
+                                                </div>
+                                            </td>
+
+                                            <td class="px-6 py-4">
+                                                <span class="font-bold text-white"><?php echo $row['duration']; ?></span> Jam
+                                            </td>
+
+                                            <td class="px-6 py-4 text-center">
+                                                <span class="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider <?php echo $statusClass; ?>">
+                                                    <?php echo $row['status']; ?>
+                                                </span>
+                                            </td>
+
+                                            <td class="px-6 py-4 text-center">
+                                                <?php 
+                                                $isPending = ($row['status'] == 'Pending');
+                                                $isAdmin   = ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section');
+                                                $allowAccess = ($isMe && $isPending) || $isAdmin;
+
+                                                if ($allowAccess) { 
+                                                ?>
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['duration']; ?>', '<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>')" class="bg-slate-700 hover:bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Edit Data">
+                                                            <i class="fas fa-edit text-xs"></i>
+                                                        </button>
+                                                        <button onclick="confirmDeleteOt('<?php echo $row['ot_id']; ?>')" class="bg-slate-700 hover:bg-red-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Hapus Request">
+                                                            <i class="fas fa-trash text-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                <?php } else { ?>
+                                                    <div class="flex items-center justify-center gap-1 text-xs italic text-slate-600">
+                                                        <?php if (!$isPending): ?>
+                                                            <i class="fas fa-check-double text-emerald-800"></i> <span>Final</span>
+                                                        <?php else: ?>
+                                                            <i class="fas fa-lock"></i>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php } ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr id="detail-ot<?php echo $id; ?>" class="hidden bg-slate-800/50 border-b border-slate-700 shadow-inner">
+                                            <td colspan="7" class="px-8 py-6">
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs">
+                                                    
+                                                    <div class="space-y-2 border-r border-slate-700 pr-4">
+                                                        <h4 class="text-emerald-400 font-bold uppercase tracking-wider mb-2">📋 Aktivitas / Pekerjaan</h4>
+                                                        <p class="text-slate-300 bg-slate-900/50 p-3 rounded border border-slate-700/50 leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($row['activity']); ?></p>
+                                                    </div>
+
+                                                    <div class="space-y-2">
+                                                        <h4 class="text-emerald-400 font-bold uppercase tracking-wider mb-2">📷 Lampiran / Evidence</h4>
+
+                                                        <?php if (!empty($row['evidence'])): 
+                                                            $files = explode(',', $row['evidence']);
+                                                        ?>
+                                                            <div class="grid grid-cols-1 gap-2"> 
+                                                                <?php foreach ($files as $file):
+                                                                    $file = trim($file);
+                                                                    if (empty($file)) continue;
+                                                                ?>
+                                                                    <a href="uploads/evidence/<?php echo $file; ?>" target="_blank" class="bg-slate-900 p-2 rounded border border-slate-700 flex items-center justify-between group cursor-pointer hover:border-emerald-500 transition">
+                                                                        <div class="flex items-center gap-3">
+                                                                            <div class="w-8 h-8 bg-slate-800 rounded flex items-center justify-center text-slate-400">
+                                                                                <?php if (strpos($file, '.pdf') !== false): ?>
+                                                                                    <i class="fas fa-file-pdf text-red-400"></i>
+                                                                                <?php else: ?>
+                                                                                    <i class="fas fa-image text-blue-400"></i>
+                                                                                <?php endif; ?>
+                                                                            </div>
+                                                                            <div>
+                                                                                <div class="text-white font-medium truncate w-48" title="<?php echo $file; ?>">
+                                                                                    <?php echo (strlen($file) > 20) ? substr($file, 15) : $file; ?>
+                                                                                </div>
+                                                                                <div class="text-[10px] text-slate-500">Klik untuk lihat</div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <i class="fas fa-external-link-alt text-slate-600 group-hover:text-emerald-400 mr-2 text-xs"></i>
+                                                                    </a>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <div class="p-3 bg-slate-900/30 rounded border border-slate-700 border-dashed text-center text-slate-500 italic">
+                                                                - Tidak ada lampiran -
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                <?php 
+                                    } 
+                                } else { 
+                                ?>
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-8 text-center text-slate-500 italic">Belum ada history lembur siapapun.</td>
+                                    </tr>
+                                <?php } ?>
                             </tbody>
+
                         </table>
 
                         <div class="flex justify-between items-center mt-4 mb-8 px-4" id="paginationContainer">
@@ -612,13 +664,28 @@ $totalNotif = $countBreakdown + $countOverdue;
                     </button>
                 </div>
 
-                <form action="process/process_add_overtime.php" method="POST" class="space-y-4">
+                <form action="process/process_add_overtime.php" method="POST" enctype="multipart/form-data" class="space-y-4">
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Tanggal</label>
                             <input type="date" name="date_ot" value="<?php echo date('Y-m-d'); ?>" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
                         </div>
+
+                        <!-- <div>
+                            <label class="block text-xs text-slate-400 mb-1 font-medium">Nama Personil</label>
+                            <select name="name" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                                <option value="">-- Pilih Personil --</option>
+                                <?php
+                                // Ambil data user (pastikan nama tabelnya tb_users atau tb_user)
+                                $q_user = mysqli_query($conn, "SELECT full_name FROM tb_users ORDER BY full_name ASC");
+                                while ($u = mysqli_fetch_assoc($q_user)) {
+                                    // Kita gunakan full_name sebagai value dan tampilan
+                                    echo '<option value="' . $u['full_name'] . '">' . $u['full_name'] . '</option>';
+                                }
+                                ?>
+                            </select>
+                        </div> -->
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Nomor SPK (Optional)</label>
                             <input type="text" name="spk_number" placeholder="Contoh: SPK-001" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
@@ -646,6 +713,28 @@ $totalNotif = $countBreakdown + $countOverdue;
                         <textarea name="activity" rows="3" required placeholder="Jelaskan pekerjaan yang dilakukan..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none"></textarea>
                     </div>
 
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-2 font-medium">13. Evidence / Attachment</label>
+                        <div class="w-full">
+                            <label for="file_evidence" id="drop-zone" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-950 hover:bg-slate-800 hover:border-emerald-500 transition group relative overflow-hidden">
+                                
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6" id="upload-placeholder">
+                                    <i class="fas fa-cloud-upload-alt text-2xl text-slate-500 mb-2 group-hover:text-emerald-400 transition"></i>
+                                    <p class="text-sm text-slate-400 mb-1"><span class="font-semibold text-emerald-400">Klik untuk upload</span></p>
+                                    <p class="text-[10px] text-slate-500">JPG, PNG, PDF (Max 2MB)</p>
+                                </div>
+
+                                <div id="file-preview" class="hidden flex-col items-center justify-center w-full h-full bg-slate-800/80 absolute inset-0">
+                                    <i class="fas fa-check-circle text-3xl text-emerald-400 mb-2"></i>
+                                    <p id="file-name-display" class="text-xs text-white font-medium text-center px-2 break-all">Filename.jpg</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">(Klik lagi untuk ganti)</p>
+                                </div>
+
+                                <input id="file_evidence" type="file" name="evidence[]" multiple accept="image/*,.pdf" class="hidden" onchange="previewFile()" />
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="pt-4 flex gap-3">
                         <button type="button" onclick="document.getElementById('modalOvertime').classList.add('hidden')" class="flex-1 py-2 bg-slate-800 text-slate-300 rounded hover:bg-slate-700 text-sm">Batal</button>
                         <button type="submit" class="flex-1 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-500 text-sm font-bold shadow-lg shadow-emerald-600/20">Simpan Request</button>
@@ -665,14 +754,14 @@ $totalNotif = $countBreakdown + $countOverdue;
                         <h3 class="text-xl font-bold text-white flex items-center gap-2">
                             <i class="fas fa-edit text-emerald-400"></i> Edit Request Overtime
                         </h3>
-                        <p class="text-xs text-slate-500 mt-1">Please fill in the work activity log in detail.</p>
+                        <p class="text-xs text-slate-500 mt-1">Silakan perbarui data lembur jika diperlukan.</p>
                     </div>
-                    <button onclick="document.getElementById('modalEditOvertime').classList.add('hidden')" class="close-modal text-slate-400 hover:text-red-400 transition">
+                    <button onclick="closeEditModal()" class="close-modal text-slate-400 hover:text-red-400 transition">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
 
-                <form action="process/process_edit_ot.php" method="POST" class="space-y-4">
+                <form action="process/process_edit_ot.php" method="POST" enctype="multipart/form-data" class="space-y-4">
                     <input type="hidden" name="ot_id" id="edit_ot_id">
 
                     <div class="grid grid-cols-2 gap-4">
@@ -699,12 +788,34 @@ $totalNotif = $countBreakdown + $countOverdue;
 
                     <div class="bg-slate-800 p-3 rounded border border-slate-700 flex justify-between items-center">
                         <span class="text-xs text-slate-400">Estimasi Durasi:</span>
-                        <span id="edit_duration" name="duration" required class="text-emerald-400 font-bold text-lg">0.0 Jam</span>
+                        <span id="edit_duration" class="text-emerald-400 font-bold text-lg">0.0 Jam</span>
                     </div>
 
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">Aktivitas</label>
                         <textarea name="activity" id="edit_activity" rows="3" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-2 font-medium">Update Evidence (Opsional)</label>
+                        <div class="w-full">
+                            <label for="edit_file_evidence" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-950 hover:bg-slate-800 hover:border-emerald-500 transition group relative overflow-hidden">
+                                
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6" id="edit-upload-placeholder">
+                                    <i class="fas fa-cloud-upload-alt text-2xl text-slate-500 mb-2 group-hover:text-emerald-400 transition"></i>
+                                    <p class="text-sm text-slate-400 mb-1"><span class="font-semibold text-emerald-400">Ganti File</span></p>
+                                    <p class="text-[10px] text-slate-500">Biarkan kosong jika tidak diubah</p>
+                                </div>
+
+                                <div id="edit-file-preview" class="hidden flex-col items-center justify-center w-full h-full bg-slate-800/80 absolute inset-0">
+                                    <i class="fas fa-check-circle text-3xl text-emerald-400 mb-2"></i>
+                                    <p id="edit-file-name-display" class="text-xs text-white font-medium text-center px-2 break-all">Filename.jpg</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">(Klik lagi untuk ganti)</p>
+                                </div>
+
+                                <input id="edit_file_evidence" type="file" name="evidence[]" multiple accept="image/*,.pdf" class="hidden" onchange="previewEditFile()" />
+                            </label>
+                        </div>
                     </div>
 
                     <div class="pt-4 flex gap-3">
@@ -716,404 +827,274 @@ $totalNotif = $countBreakdown + $countOverdue;
         </div>
     </div>
 
-<script src="assets/js/ui-sidebar.js"></script>
-<script src="assets/js/ui-modal.js"></script>
+    <?php include 'layouts/mobile_nav.php'; ?>
+    <?php include 'layouts/scripts.php'; ?>
 
-<script>
-    // ============================================================
-    //  1. FUNGSI HITUNG DURASI & MODAL
-    // ============================================================
+    <script>
+                // ============================================================
+        //  5. LOGIKA PAGINATION & LIVE SEARCH (FULL FIX)
+        // ============================================================
+        // document.addEventListener('DOMContentLoaded', function() {
+        // document.addEventListener('turbo:load', function() {
+        (function() {
+            if (document.documentElement.hasAttribute("data-turbo-preview")) return;
 
-    // Script Hitung Durasi Otomatis
-    function calculateDuration() {
-        const startVal = document.getElementById('t_start').value;
-        const endVal = document.getElementById('t_end').value;
-        const display = document.getElementById('duration_preview');
+            // 2. PROTEKSI HALAMAN
+            if (!window.location.pathname.includes('overtime.php')) return;
 
-        if (startVal && endVal) {
-            let start = new Date("2000-01-01 " + startVal);
-            let end = new Date("2000-01-01 " + endVal);
+            const tableBody = document.getElementById('tableOvertimeBody');
+            const searchInput = document.getElementById('searchInput');
+            const pageInfo = document.getElementById('pageInfo');
+            const paginationControls = document.getElementById('paginationControls');
 
-            // Jika jam selesai lebih kecil (lembur lewat tengah malam), tambah 1 hari
-            if (end < start) {
-                end.setDate(end.getDate() + 1);
-            }
+            if (tableBody) {
+                const rowsPerPage = 20; 
+                // Ambil baris MASTER saja (abaikan baris detail-otxxx)
+                let allRows = Array.from(tableBody.querySelectorAll('tr')).filter(row => !row.id.includes('detail-'));
+                let currentPage = 1;
 
-            let diffMs = end - start;
-            let diffHrs = diffMs / (1000 * 60 * 60); // Konversi ms ke jam
+                // --- FUNGSI UTAMA RENDER TABEL ---
+                function renderTable() {
+                    const searchText = searchInput ? searchInput.value.toLowerCase() : '';
 
-            // Jika kerja lebih dari 4 jam, otomatis kurangi 1 jam
-            if (diffHrs > 4) {
-                diffHrs = diffHrs - 1;
-            }
-
-            display.innerText = diffHrs.toFixed(1) + " Jam";
-        } else {
-            display.innerText = "0.0 Jam";
-        }
-    }
-
-    // Tambahkan fungsi baru ini untuk Modal Edit
-    function calculateEditDuration() {
-        const startVal = document.getElementById('edit_start').value;
-        const endVal = document.getElementById('edit_end').value;
-        const display = document.getElementById('edit_duration');
-
-        if (startVal && endVal) {
-            let start = new Date("2000-01-01 " + startVal);
-            let end = new Date("2000-01-01 " + endVal);
-
-            // Handle lewat tengah malam
-            if (end < start) {
-                end.setDate(end.getDate() + 1);
-            }
-
-            let diffMs = end - start;
-            let diffHrs = diffMs / (1000 * 60 * 60);
-
-            // --- LOGIKA POTONG ISTIRAHAT 1 JAM ---
-            if (diffHrs > 4) {
-                diffHrs = diffHrs - 1;
-            }
-
-            display.innerText = diffHrs.toFixed(1) + " Jam";
-        } else {
-            display.innerText = "0.0 Jam";
-        }
-    }
-
-    // Fungsi Buka Modal Edit
-    function openEditModal(id, date, start, end, duration, spk, activity) {
-        document.getElementById('edit_ot_id').value = id;
-        document.getElementById('edit_date').value = date;
-        document.getElementById('edit_start').value = start;
-        document.getElementById('edit_end').value = end;
-        document.getElementById('edit_duration').innerText = duration + " Jam";
-        document.getElementById('edit_spk').value = spk;
-        document.getElementById('edit_activity').value = activity;
-
-        document.getElementById('modalEditOvertime').classList.remove('hidden');
-    }
-
-    // Fungsi Tutup Modal Edit
-    function closeEditModal() {
-        document.getElementById('modalEditOvertime').classList.add('hidden');
-    }
-
-    // ============================================================
-    //  2. LOGIKA NOTIFIKASI SWEETALERT (SWAL)
-    // ============================================================
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const status = urlParams.get('status');
-    const msg = urlParams.get('msg');
-
-    // Config dasar Swal agar tidak mengetik ulang warna berulang kali
-    const swalConfig = { background: '#1e293b', color: '#fff' };
-
-    if (status === 'success') {
-        Swal.fire({ ...swalConfig, icon: 'success', title: 'Berhasil!', text: 'Request lembur berhasil dikirim.', confirmButtonColor: '#059669' });
-    } 
-    else if (status === 'success_update') {
-        Swal.fire({ ...swalConfig, icon: 'success', title: 'Data Diperbarui!', text: 'Perubahan data lembur berhasil disimpan.', confirmButtonColor: '#3b82f6' });
-    } 
-    else if (status === 'deleted') {
-        Swal.fire({ ...swalConfig, icon: 'success', title: 'Dihapus!', text: 'Data lembur berhasil dibatalkan.', confirmButtonColor: '#ef4444' });
-    } 
-    else if (status === 'updated') {
-        Swal.fire({ ...swalConfig, icon: 'success', title: 'Status Diperbarui!', text: 'Status approval berhasil diubah.', confirmButtonColor: '#059669' });
-    } 
-    else if (status === 'error') {
-        Swal.fire({ ...swalConfig, icon: 'error', title: 'Gagal', text: msg || 'Terjadi kesalahan sistem.', confirmButtonColor: '#ef4444' });
-    }
-
-    // Bersihkan URL (Hapus ?status=...)
-    if (status) {
-        window.history.replaceState(null, null, window.location.pathname);
-    }
-
-    // ============================================================
-    //  3. FUNGSI KONFIRMASI DELETE
-    // ============================================================
-    
-    function confirmDeleteOt(id) {
-        Swal.fire({
-            title: 'Batalkan Lembur?',
-            text: "Data yang dihapus tidak bisa dikembalikan!",
-            icon: 'warning',
-            background: '#1e293b',
-            color: '#fff',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = 'process/process_delete_ot.php?id=' + id;
-            }
-        });
-    }
-
-    // ============================================================
-    //  4. FUNGSI UI LAINNYA (DROPDOWN NOTIF)
-    // ============================================================
-
-    function toggleNotif() {
-        const dropdown = document.getElementById('notifDropdown');
-        if (dropdown) dropdown.classList.toggle('hidden');
-    }
-
-    // Tutup dropdown kalau klik di luar area (Dengan Safety Check)
-    window.addEventListener('click', function(e) {
-        const btn = document.querySelector('button[onclick="toggleNotif()"]');
-        const dropdown = document.getElementById('notifDropdown');
-
-        // Pastikan elemennya ADA dulu, baru dicek contains-nya
-        if (btn && dropdown) {
-            if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        }
-    });
-
-    // ============================================================
-    //  5. FUNGSI LIVE SEARCH (CARI CEPAT)
-    // ============================================================
-    document.addEventListener('DOMContentLoaded', function() {
-    // --- LOGIC PAGINATION & SEARCH (GAYA LAPORAN.PHP) ---
-    const tableBody = document.getElementById('tableOvertimeBody');
-    const searchInput = document.getElementById('searchInput'); // Pastikan ID input search Bapak 'searchInput'
-    const pageInfo = document.getElementById('pageInfo');
-    const paginationControls = document.getElementById('paginationControls');
-
-    if (tableBody) {
-        // Konfigurasi: Tampilkan 50 data per halaman
-        const rowsPerPage = 30; 
-        
-        // Ambil semua baris data dari tabel
-        let allRows = Array.from(tableBody.querySelectorAll('tr'));
-        let currentPage = 1;
-
-        function renderTable() {
-            // 1. Ambil kata kunci pencarian
-            const searchText = searchInput ? searchInput.value.toLowerCase() : '';
-
-            // 2. Filter Baris (Cari text di dalam baris)
-            const filteredRows = allRows.filter(row => {
-                const textMatch = row.textContent.toLowerCase().includes(searchText);
-                return textMatch;
-            });
-
-            // 3. Hitung Pagination
-            const totalItems = filteredRows.length;
-            const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-            // Reset halaman jika melampaui batas
-            if (currentPage > totalPages) currentPage = 1;
-            if (currentPage < 1 && totalPages > 0) currentPage = 1;
-
-            const start = (currentPage - 1) * rowsPerPage;
-            const end = start + rowsPerPage;
-
-            // 4. Render (Sembunyikan semua, lalu munculkan yang sesuai halaman)
-            allRows.forEach(row => row.style.display = 'none'); // Sembunyikan TOTAL semua
-            
-            // Munculkan yang lolos filter & sesuai halaman
-            filteredRows.slice(start, end).forEach(row => {
-                row.style.display = ''; 
-            });
-
-            // 5. Update Info Text
-            if (pageInfo) {
-                if (totalItems === 0) {
-                    pageInfo.innerText = "Tidak ada data yang cocok.";
-                } else {
-                    pageInfo.innerText = `Menampilkan ${start + 1} - ${Math.min(end, totalItems)} dari ${totalItems} data`;
-                }
-            }
-
-            // 6. Render Tombol Angka
-            renderButtons(totalPages);
-        }
-
-        function renderButtons(totalPages) {
-            if (!paginationControls) return;
-            paginationControls.innerHTML = ""; // Bersihkan tombol lama
-            
-            if (totalPages <= 1) return; // Kalau cuma 1 halaman, gak usah muncul tombol
-
-            const createBtn = (text, page, isActive = false, isDisabled = false) => {
-                const btn = document.createElement('button');
-                btn.innerHTML = text; // Pakai innerHTML biar bisa icon
-                // Style tombol persis laporan.php
-                btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-                
-                if (isDisabled) {
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
-                    btn.disabled = true;
-                } else {
-                    btn.addEventListener('click', () => {
-                        currentPage = page;
-                        renderTable(); // Render ulang saat klik
+                    // 1. Filter Data
+                    const filteredRows = allRows.filter(row => {
+                        return row.textContent.toLowerCase().includes(searchText);
                     });
+
+                    // 2. Hitung Halaman
+                    const totalItems = filteredRows.length;
+                    const totalPages = Math.ceil(totalItems / rowsPerPage);
+                    if (currentPage > totalPages) currentPage = 1;
+
+                    const start = (currentPage - 1) * rowsPerPage;
+                    const end = start + rowsPerPage;
+
+                    // 3. Sembunyikan Semua & Munculkan yang terpilih
+                    tableBody.querySelectorAll('tr').forEach(tr => tr.style.display = 'none');
+                    
+                    filteredRows.slice(start, end).forEach(row => {
+                        row.style.display = ''; 
+                    });
+
+                    // 4. Update Info Text
+                    if (pageInfo) {
+                        pageInfo.innerText = totalItems === 0 ? "Tidak ada data yang cocok." : `Menampilkan ${start + 1} - ${Math.min(end, totalItems)} dari ${totalItems} data`;
+                    }
+
+                    // 5. Panggil Fungsi Render Tombol (PASTIKAN ADA)
+                    renderButtons(totalPages);
                 }
-                return btn;
-            };
 
-            // Tombol Prev
-            paginationControls.appendChild(createBtn('<i class="fas fa-chevron-left"></i>', currentPage - 1, false, currentPage === 1));
+                // --- FUNGSI RENDER TOMBOL PAGINATION ---
+                function renderButtons(totalPages) {
+                    if (!paginationControls) return;
+                    paginationControls.innerHTML = "";
+                    if (totalPages <= 1) return;
 
-            // Logic Tombol Angka (Maksimal 5 tombol biar rapi)
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = Math.min(totalPages, currentPage + 2);
+                    const createBtn = (text, page, isActive = false, isDisabled = false) => {
+                        const btn = document.createElement('button');
+                        btn.innerHTML = text;
+                        btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+                        if (isDisabled) {
+                            btn.classList.add('opacity-50', 'cursor-not-allowed');
+                            btn.disabled = true;
+                        } else {
+                            btn.onclick = () => { currentPage = page; renderTable(); };
+                        }
+                        return btn;
+                    };
 
-            for (let i = startPage; i <= endPage; i++) {
-                paginationControls.appendChild(createBtn(i, i, i === currentPage));
+                    paginationControls.appendChild(createBtn('<i class="fas fa-chevron-left"></i>', currentPage - 1, false, currentPage === 1));
+                    
+                    let startP = Math.max(1, currentPage - 2);
+                    let endP = Math.min(totalPages, currentPage + 2);
+                    for (let i = startP; i <= endP; i++) {
+                        paginationControls.appendChild(createBtn(i, i, i === currentPage));
+                    }
+
+                    paginationControls.appendChild(createBtn('<i class="fas fa-chevron-right"></i>', currentPage + 1, false, currentPage === totalPages));
+                }
+
+                // --- EVENT LISTENER SEARCH ---
+                if (searchInput) {
+                        searchInput.oninput = () => {
+                        currentPage = 1;
+                        renderTable();
+                    };
+                }
+
+                // Jalankan Pertama Kali
+                renderTable();
             }
+        })();
 
-            // Tombol Next
-            paginationControls.appendChild(createBtn('<i class="fas fa-chevron-right"></i>', currentPage + 1, false, currentPage === totalPages));
+        // 1. HITUNG DURASI OTOMATIS (Modal Create & Edit)
+        function calculateDuration(type = 'add') {
+            const prefix = type === 'edit' ? 'edit_' : 't_';
+            const startVal = document.getElementById(type === 'edit' ? 'edit_start' : 't_start').value;
+            const endVal = document.getElementById(type === 'edit' ? 'edit_end' : 't_end').value;
+            const display = document.getElementById(type === 'edit' ? 'edit_duration' : 'duration_preview');
+
+            if (startVal && endVal) {
+                let start = new Date("2000-01-01 " + startVal);
+                let end = new Date("2000-01-01 " + endVal);
+                if (end < start) end.setDate(end.getDate() + 1); // Lewat tengah malam
+
+                let diffHrs = (end - start) / (1000 * 60 * 60);
+                if (diffHrs > 4) diffHrs -= 1; // Potong istirahat 1 jam jika > 4 jam
+                display.innerText = diffHrs.toFixed(1) + " Jam";
+            }
         }
 
-        // Event Listener untuk Search (Live Typing)
-        if (searchInput) {
-            // Hapus onkeyup lama di HTML biar gak bentrok
-            searchInput.removeAttribute('onkeyup'); 
-            searchInput.addEventListener('keyup', () => {
-                currentPage = 1; // Reset ke halaman 1 kalau user ngetik
-                renderTable();
+        // --- FUNGSI HITUNG DURASI KHUSUS MODAL EDIT ---
+        function calculateEditDuration() {
+            const startVal = document.getElementById('edit_start').value;
+            const endVal = document.getElementById('edit_end').value;
+            const display = document.getElementById('edit_duration');
+
+            if (startVal && endVal) {
+                let start = new Date("2000-01-01 " + startVal);
+                let end = new Date("2000-01-01 " + endVal);
+
+                // Handle jika lembur melewati tengah malam (misal: 22:00 - 02:00)
+                if (end < start) {
+                    end.setDate(end.getDate() + 1);
+                }
+
+                let diffMs = end - start;
+                let diffHrs = diffMs / (1000 * 60 * 60); // Konversi ke jam
+
+                // --- LOGIKA POTONG ISTIRAHAT 1 JAM ---
+                // Jika durasi kerja lebih dari 4 jam, otomatis potong 1 jam istirahat
+                if (diffHrs > 4) {
+                    diffHrs = diffHrs - 1;
+                }
+
+                display.innerText = diffHrs.toFixed(1) + " Jam";
+            } else {
+                display.innerText = "0.0 Jam";
+            }
+        }
+
+        // 2. MODAL EDIT BINDER
+        function openEditModal(id, date, start, end, duration, spk, activity) {
+            document.getElementById('edit_ot_id').value = id;
+            document.getElementById('edit_date').value = date;
+            document.getElementById('edit_start').value = start;
+            document.getElementById('edit_end').value = end;
+            document.getElementById('edit_duration').innerText = duration + " Jam";
+            document.getElementById('edit_spk').value = spk;
+            document.getElementById('edit_activity').value = activity;
+            openModal('modalEditOvertime');
+        }
+
+        // 3. UPDATE STATUS (ACC/TOLAK) - AJAX Style
+        function updateStatus(id, status) {
+            Swal.fire({
+                title: status === 'Approved' ? 'Setujui Lembur?' : 'Tolak Lembur?',
+                icon: status === 'Approved' ? 'question' : 'warning',
+                showCancelButton: true,
+                confirmButtonColor: status === 'Approved' ? '#059669' : '#ef4444',
+                background: '#1e293b', color: '#fff'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'process/process_update_ot.php?id=' + id + '&status=' + status;
+                }
             });
         }
 
-        // Jalankan Pertama Kali
-        renderTable();
-    }
-});
+        // --- FUNGSI EXPORT EXCEL (DENGAN FILTER PENCARIAN) ---
+        function downloadExcelOvertime() {
+            // 1. Ambil nilai dari kotak pencarian (agar yang di-export sesuai yang dicari)
+            const searchInput = document.getElementById('searchInput');
+            const searchValue = searchInput ? searchInput.value : '';
 
-    // --- FUNGSI UPDATE STATUS (ACC / TOLAK) ---
-    function updateStatus(id, status) {
-        // Tentukan Warna & Kata-kata berdasarkan status
-        let titleText = status === 'Approved' ? 'Setujui Lembur?' : 'Tolak Lembur?';
-        let confirmText = status === 'Approved' ? 'Ya, Setujui' : 'Ya, Tolak';
-        let btnColor = status === 'Approved' ? '#059669' : '#ef4444'; // Hijau atau Merah
-        let iconType = status === 'Approved' ? 'question' : 'warning';
-
-        Swal.fire({
-            title: titleText,
-            text: "Status akan diperbarui di sistem.",
-            icon: iconType,
-            background: '#1e293b',
-            color: '#fff',
-            showCancelButton: true,
-            confirmButtonColor: btnColor,
-            cancelButtonColor: '#64748b',
-            confirmButtonText: confirmText,
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Arahkan ke file proses update
-                window.location.href = 'process/process_update_ot.php?id=' + id + '&status=' + status;
+            // 2. Tentukan URL file pemroses export bapak
+            let url = 'export/export_overtime_excel.php?export=true';
+            
+            // 3. Jika user sedang mencari sesuatu, tempelkan kata kuncinya ke URL
+            if (searchValue) {
+                url += '&search=' + encodeURIComponent(searchValue);
             }
-        });
-    }
 
-    // FUNGSI EXPORT DENGAN FILTER (MIRIP LAPORAN.PHP)
-    function downloadExcelOvertime() {
-        // 1. Ambil nilai dari kotak pencarian
-        const searchInput = document.getElementById('searchInput');
-        const searchValue = searchInput ? searchInput.value : '';
-
-        // 2. Buat URL ke file export
-        let url = 'export/export_overtime_excel.php?export=true';
-        
-        // 3. Jika ada ketikan pencarian, tempelkan ke URL
-        if (searchValue) {
-            url += '&search=' + encodeURIComponent(searchValue);
+            // 4. Buka di tab baru untuk memulai proses download
+            window.open(url, '_blank');
         }
 
-        // 4. Buka tab baru untuk download
-        window.open(url, '_blank');
-    }
-</script>
-
-<button onclick="toggleMobileMenu()" id="mobileMenuBtn" class="fixed bottom-24 right-4 z-[60] md:hidden bg-emerald-600/50 text-white w-12 h-12 rounded-full shadow-lg shadow-emerald-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-1 border-slate-900">
-    <i id="iconOpen" class="fas fa-bars text-lg"></i>
-    <i id="iconClose" class="fas fa-times text-lg hidden"></i>
-</button>
-
-<nav id="mobileNavbar" class="fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl flex justify-around items-center py-3 z-50 md:hidden transition-transform duration-300 ease-in-out translate-y-[150%] shadow-2xl">
-
-        <?php $page = basename($_SERVER['PHP_SELF']); ?>
-
-        <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
-            <i class="fa-solid fa-house-chimney text-xl mb-0.5"></i>
-            <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
-        </a>
-
-        <a href="database.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'database.php' || $page == 'master_items.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
-            <i class="fas fa-database text-xl mb-0.5"></i>
-            <span class="text-[9px] font-medium uppercase tracking-wide">Database</span>
-        </a>
-
-        <a href="laporan.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'laporan.php' || $page == 'my_laporan.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
-            <i class="fas fa-clipboard-list text-xl mb-0.5"></i>
-            <span class="text-[9px] font-medium uppercase tracking-wide">Report</span>
-        </a>
-
-        <a href="project.php" class="flex flex-col items-center gap-1 w-1/5 transition <?php echo ($page == 'project.php') ? 'text-emerald-400' : 'text-slate-500 hover:text-slate-300'; ?>">
-            <i class="fas fa-project-diagram text-xl mb-0.5"></i>
-            <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
-        </a>
-
-        <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-            <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
-            <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
-        </a>
-
-        <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition">
-            <i class="fas fa-sign-out-alt text-xl mb-0.5"></i>
-            <span class="text-[9px] font-medium uppercase tracking-wide">Logout</span>
-        </a>
-
-    </nav>
-
-<script>
-    function toggleMobileMenu() {
-        const navbar = document.getElementById('mobileNavbar');
-        const iconOpen = document.getElementById('iconOpen');
-        const iconClose = document.getElementById('iconClose');
-        const btn = document.getElementById('mobileMenuBtn');
-
-        // Toggle Class untuk menampilkan/menyembunyikan Navbar
-        // translate-y-[150%] artinya geser ke bawah sejauh 150% dari tingginya (ngumpet)
-        // translate-y-0 artinya kembali ke posisi asal (muncul)
-        if (navbar.classList.contains('translate-y-[150%]')) {
-            // MUNCULKAN MENU
-            navbar.classList.remove('translate-y-[150%]');
-            navbar.classList.add('translate-y-0');
+        // --- FUNGSI PREVIEW FILE (DIPERLUKAN UNTUK MODAL) ---
+        function previewFile() {
+            const input = document.getElementById('file_evidence');
+            const previewDiv = document.getElementById('file-preview');
+            const nameDisplay = document.getElementById('file-name-display');
             
-            // Ubah Icon jadi X
-            iconOpen.classList.add('hidden');
-            iconClose.classList.remove('hidden');
-
-            // Ubah warna tombol jadi merah (biar kelihatan tombol close)
-            btn.classList.remove('bg-emerald-600');
-            btn.classList.add('bg-slate-700');
-        } else {
-            // SEMBUNYIKAN MENU
-            navbar.classList.add('translate-y-[150%]');
-            navbar.classList.remove('translate-y-0');
-            
-            // Ubah Icon jadi Hamburger
-            iconOpen.classList.remove('hidden');
-            iconClose.classList.add('hidden');
-
-            // Balikin warna tombol
-            btn.classList.add('bg-emerald-600');
-            btn.classList.remove('bg-slate-700');
+            if (input.files && input.files.length > 0) {
+                nameDisplay.innerText = input.files.length === 1 ? input.files[0].name : input.files.length + " File Dipilih";
+                previewDiv.classList.replace('hidden', 'flex');
+            } else {
+                previewDiv.classList.replace('flex', 'hidden');
+            }
         }
-    }
-</script>
+
+        function previewEditFile() {
+            const input = document.getElementById('edit_file_evidence');
+            const previewDiv = document.getElementById('edit-file-preview');
+            const nameDisplay = document.getElementById('edit-file-name-display');
+            
+            if (input.files && input.files.length > 0) {
+                nameDisplay.innerText = input.files.length === 1 ? input.files[0].name : input.files.length + " File Baru Dipilih";
+                previewDiv.classList.replace('hidden', 'flex');
+            } else {
+                previewDiv.classList.replace('flex', 'hidden');
+            }
+        }
+
+        // 4. DELETE & TOGGLE DETAIL
+        function confirmDeleteOt(id) {
+            Swal.fire({
+                title: 'Hapus Data?', text: "Data tidak bisa kembali!", icon: 'warning',
+                showCancelButton: true, background: '#1e293b', color: '#fff', confirmButtonColor: '#ef4444'
+            }).then((r) => { if(r.isConfirmed) window.location.href = 'process/process_delete_ot.php?id='+id; });
+        }
+
+        // --- FUNGSI TOGGLE DETAIL (VERSI ANTI-BENTROK PAGINATION) ---
+        function toggleDetail(rowId) {
+            const detailRow = document.getElementById('detail-' + rowId);
+            const icon = document.getElementById('icon-' + rowId);
+            
+            if (detailRow && icon) {
+                // Cek apakah sedang sembunyi (baik lewat class maupun inline style)
+                const isCurrentlyHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+
+                if (isCurrentlyHidden) {
+                    // 1. Tampilkan baris (Hapus class dan paksa style table-row)
+                    detailRow.classList.remove('hidden');
+                    detailRow.style.setProperty('display', 'table-row', 'important'); 
+                    
+                    // 2. Ubah Icon jadi Minus (-)
+                    icon.classList.remove('fa-plus');
+                    icon.classList.add('fa-minus');
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    // 1. Sembunyikan baris (Tambah class dan paksa style none)
+                    detailRow.classList.add('hidden');
+                    detailRow.style.display = 'none';
+                    
+                    // 2. Ubah Icon jadi Plus (+)
+                    icon.classList.remove('fa-minus');
+                    icon.classList.add('fa-plus');
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
+
+        // --- FUNGSI TUTUP MODAL EDIT ---
+        function closeEditModal() {
+            const modal = document.getElementById('modalEditOvertime');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+    </script>
 </body>
 </html>

@@ -57,6 +57,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $duration = number_format($raw_duration, 1);
 
+    // --- TAMBAHAN: LOGIKA UPLOAD EVIDENCE BARU ---
+    $evidence_sql = ""; // Default kosong
+
+    // Cek apakah user memilih file baru?
+    if (isset($_FILES['evidence']) && !empty($_FILES['evidence']['name'][0])) {
+        
+        $target_dir = "../uploads/evidence/";
+        // Buat folder kalau belum ada
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+
+        $uploaded_files = [];
+        $total_files = count($_FILES['evidence']['name']);
+
+        for ($i = 0; $i < $total_files; $i++) {
+            $filename = $_FILES['evidence']['name'][$i];
+            $tmp_name = $_FILES['evidence']['tmp_name'][$i];
+            $error    = $_FILES['evidence']['error'][$i];
+
+            if ($error === 0) {
+                // Nama unik
+                $new_name = time() . '_' . rand(100, 999) . '_' . preg_replace("/[^a-zA-Z0-9.]/", "", $filename);
+                
+                if (move_uploaded_file($tmp_name, $target_dir . $new_name)) {
+                    $uploaded_files[] = $new_name;
+                }
+            }
+        }
+
+        // Jika ada file yang berhasil diupload
+        if (!empty($uploaded_files)) {
+            $new_evidence_string = implode(',', $uploaded_files);
+            // Siapkan potongan Query SQL tambahan (Perhatikan koma di depan)
+            $evidence_sql = ", evidence='$new_evidence_string'";
+        }
+    }
+
     // --- D. EKSEKUSI QUERY UPDATE ---
     $query = "UPDATE tb_overtime SET 
               date_ot='$date_ot', 
@@ -65,6 +103,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               duration='$duration', 
               spk_number='$spk_number', 
               activity='$activity' 
+              $evidence_sql
               $sql_where"; // <-- Variable WHERE ditempel disini
 
     if (mysqli_query($conn, $query)) {

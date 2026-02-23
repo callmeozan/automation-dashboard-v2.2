@@ -48,7 +48,8 @@ function toggleDetail(rowId) {
 // ============================================================
 // LOGIC UTAMA (Ditaruh di dalam DOMContentLoaded)
 // ============================================================
-document.addEventListener('DOMContentLoaded', function() {
+// document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('turbo:load', function() {
 
     // --- 1. MODAL LAPORAN HARIAN (Dashboard & Laporan) ---
     // Menggunakan Class: btn-input-laporan

@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', function() {
+// document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('turbo:load', function() {
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
     const presentationBtn = document.getElementById('presentationModeBtn');

@@ -31,9 +31,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Format jadi 1 angka di belakang koma (misal 2.5)
     $duration = number_format($duration, 1);
 
+    // --- 3. PROSES UPLOAD EVIDENCE (BARU) ---
+    $evidence_string = ""; // Default kosong
+    $uploaded_files = [];
+
+    // Cek apakah user mengupload file
+    if (isset($_FILES['evidence']) && !empty($_FILES['evidence']['name'][0])) {
+        
+        // Buat folder jika belum ada
+        $target_dir = "../uploads/evidence/";
+        if (!is_dir($target_dir)) {
+            mkdir($target_dir, 0777, true);
+        }
+
+        $total_files = count($_FILES['evidence']['name']);
+
+        for ($i = 0; $i < $total_files; $i++) {
+            $filename = $_FILES['evidence']['name'][$i];
+            $tmp_name = $_FILES['evidence']['tmp_name'][$i];
+            $error    = $_FILES['evidence']['error'][$i];
+
+            // Cek error upload
+            if ($error === 0) {
+                // Ganti nama file biar unik (Format: time_random_namaasli)
+                // Ini penting supaya kalau ada file nama sama tidak tertimpa
+                $new_name = time() . '_' . rand(100, 999) . '_' . preg_replace("/[^a-zA-Z0-9.]/", "", $filename);
+                
+                // Pindahkan file ke folder tujuan
+                if (move_uploaded_file($tmp_name, $target_dir . $new_name)) {
+                    $uploaded_files[] = $new_name;
+                }
+            }
+        }
+
+        // Gabungkan nama file dengan koma (file1.jpg,file2.png)
+        if (!empty($uploaded_files)) {
+            $evidence_string = implode(',', $uploaded_files);
+        }
+    }
+
     // 3. Simpan ke Database
-    $query = "INSERT INTO tb_overtime (user_id, date_ot, time_start, time_end, duration, spk_number, activity, status) 
-              VALUES ('$user_id', '$date_ot', '$time_start', '$time_end', '$duration', '$spk_number', '$activity', 'Pending')";
+    // $query = "INSERT INTO tb_overtime (user_id, date_ot, time_start, time_end, duration, spk_number, activity, status) 
+    //           VALUES ('$user_id', '$date_ot', '$time_start', '$time_end', '$duration', '$spk_number', '$activity', 'Pending')";
+
+    $query = "INSERT INTO tb_overtime (user_id, date_ot, time_start, time_end, duration, spk_number, activity, evidence, status, created_at) 
+              VALUES ('$user_id', '$date_ot', '$time_start', '$time_end', '$duration', '$spk_number', '$activity', '$evidence_string', 'Pending', NOW())";
 
     if (mysqli_query($conn, $query)) {
 

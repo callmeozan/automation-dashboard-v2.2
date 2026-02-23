@@ -1,51 +1,73 @@
 <?php
-session_start();
-// --- CEK LOGIN (SATPAM) ---
-// Jika session 'user_id' tidak ada, artinya dia belum login.
-if (!isset($_SESSION['user_id'])) {
-    // Tendang balik ke halaman login
-    header("Location: index.php");
-    exit(); // Stop script di sini, jangan lanjut ke bawah!
-}
-include 'config.php';
-// --- AMBIL DAFTAR TEAM UNTUK DROPDOWN PIC ---
-$queryUsers = mysqli_query($conn, "SELECT short_name FROM tb_users WHERE short_name IS NOT NULL AND short_name != '' AND role != 'admin'");
-$teamList = [];
-while ($u = mysqli_fetch_assoc($queryUsers)) {
-    $teamList[] = $u['short_name'];
-}
+// 1. Panggil Satpam & Koneksi Global
+include 'layouts/auth_and_config.php';
 
-// --- [TAMBAHAN BARU] LOGIKA FILTER TAHUN ---
-// Taruh disini supaya bisa dibaca oleh Dropdown & Query sekaligus
-if (isset($_GET['tahun'])) {
-    $tahun_pilihan = $_GET['tahun'];
-} else {
-    $tahun_pilihan = date('Y'); // Default tahun ini
-}
-
-// AMBIL NAMA USER YANG SEDANG LOGIN
+// --- PERBAIKAN ERROR ---
+// Kita ambil lagi Short Name user yang login untuk validasi tombol Edit/Hapus di bawah
 $id_login = $_SESSION['user_id'];
 $qUserLogin = mysqli_query($conn, "SELECT short_name FROM tb_users WHERE user_id='$id_login'");
 $dUserLogin = mysqli_fetch_assoc($qUserLogin);
-$my_name = $dUserLogin['short_name'];
+// Jika tidak ketemu (misal admin), set string kosong biar gak error
+$my_name = isset($dUserLogin['short_name']) ? $dUserLogin['short_name'] : ''; 
+// -----------------------
 
-// 5. LOGIC NOTIFIKASI DETAILED
-// A. Ambil Data Breakdown (Max 5 terbaru)
-$queryBreakdownList = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE category='Breakdown' AND status='Open' ORDER BY date_log DESC LIMIT 5");
-$countBreakdown = mysqli_num_rows($queryBreakdownList); // Hitung jumlahnya
+// 2. LOGIKA FILTER TAHUN
+if (isset($_GET['tahun'])) {
+    $tahun_pilihan = $_GET['tahun'];
+} else {
+    $tahun_pilihan = date('Y');
+}
 
-// B. Ambil Data Project Overdue (Max 5 terparah)
-$today = date('Y-m-d');
-$queryOverdueList = mysqli_query($conn, "SELECT * FROM tb_projects WHERE due_date < '$today' AND status != 'Done' ORDER BY due_date ASC LIMIT 5");
-$countOverdue = mysqli_num_rows($queryOverdueList); // Hitung jumlahnya
+// 3. HITUNG TOTAL REPORT (Untuk Header)
+$qCount = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_daily_reports");
+$totalReports = mysqli_fetch_assoc($qCount)['total'];
 
-// Total Angka Notif (Untuk Badge Merah)
-$totalNotif = $countBreakdown + $countOverdue;
+// 4. KONFIGURASI LAYOUT
+$pageTitle = "Daily Activity Report";
+
+// [SLOT HEADER] Teks Total Report
+$extraMenu = '
+    <div class="flex items-center gap-4">
+        <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4">
+            Total Report: <span class="text-white font-bold">' . number_format($totalReports) . '</span>
+        </div>
+    </div>';
+
+// [SLOT HEAD] CSS/JS Tambahan
+$extraHead = '
+    <link href="assets/vendor/tom-select.css" rel="stylesheet">
+    <script src="assets/vendor/tom-select.complete.min.js"></script>
+    <script src="assets/vendor/apexcharts.js"></script>
+    <style>
+        .ts-control { background-color: #0f172a !important; border: 1px solid #334155 !important; color: #fff !important; border-radius: 0.5rem; }
+        .ts-dropdown { background-color: #1e293b !important; border: 1px solid #334155 !important; color: #fff !important; }
+        .ts-dropdown .active { background-color: #334155 !important; color: #fff !important; }
+        .ts-control .item { background-color: #059669 !important; color: #fff !important; border-radius: 4px; }
+        .ts-wrapper.multi .ts-control>div { background-color: #059669 !important; color: white !important; }
+        
+        input[type="date"], input[type="time"] { color-scheme: dark; cursor: pointer; }
+        body.light-mode input[type="date"], body.light-mode input[type="time"] { color-scheme: light; }
+        
+        @media print {
+            #sidebar, header, .btn-action, button, form, #paginationContainer, .no-print { display: none !important; }
+            body, #main-content { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
+            th, td { border: 1px solid black !important; color: black !important; }
+        }
+    </style>
+';
 ?>
+
+<head>
+    <meta name="turbo-cache-control" content="no-preview">
+</head>
+
 <!DOCTYPE html>
 <html lang="id">
 
-<head>
+<!-- HEAD ADA DISINI -->
+<?php include 'layouts/head.php'; ?>
+
+<!-- <head>
     <meta charset="UTF-8">
     <meta name="theme-color" content="#03142c">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -116,197 +138,18 @@ $totalNotif = $countBreakdown + $countOverdue;
             color-scheme: light;
         }
     </style>
-</head>
+</head> -->
 
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
 
-        <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 hidden md:flex">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800">
-                <h1 class="text-xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
-            </div>
-
-            <!-- SIDEBAR ADA DISINI -->
-            <nav class="flex-1 px-4 py-6 space-y-2">
-                <a href="dashboard.php" class="nav-item">
-                    <i class="fas fa-tachometer-alt w-6"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-
-                <div class="relative">
-                    <button onclick="toggleDbMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-database w-6 group-hover:text-emerald-400 transition"></i>
-                            <span class="group-hover:text-white transition">Database</span>
-                        </div>
-                        <i id="arrowDb" class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200"></i>
-                    </button>
-
-                    <div id="dbSubmenu" class="hidden pl-10 space-y-1 mt-1 bg-slate-900/50 py-2 border-l border-slate-800 ml-3">
-                        <a href="database.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Machine / Assets
-                        </a>
-                        <a href="master_items.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Master Items
-                        </a>
-                    </div>
-
-                </div>
-                <a href="laporan.php" class="nav-item active">
-                    <i class="fas fa-clipboard-list w-6"></i>
-                    <span>Daily Report</span>
-                </a>
-
-                <a href="project.php" class="nav-item">
-                    <i class="fas fa-project-diagram w-6"></i>
-                    <span>Projects</span>
-                </a>
-
-                <a href="overtime.php" class="nav-item">
-                    <i class="fas fa-clock w-6"></i>
-                    <span>Overtime</span>
-                </a>
-
-                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                    <a href="dashboard.php?open_modal=adduser" class="nav-item hover:text-emerald-400 transition">
-                        <i class="fa-solid fa-user-plus w-6"></i>
-                        <span>Add User</span>
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
-                    <a href="manage_users.php" class="nav-item">
-                        <i class="fas fa-users-cog w-6"></i> <span class="font-medium">User Management</span>
-                    </a>
-                <?php endif; ?>
-
-                <a href="logout.php" class="nav-item">
-                    <i class="fas fa-solid fa-right-from-bracket w-6"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
-
-            <!-- USER PROFILE ADA DISINI -->
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 border border-slate-500 overflow-hidden flex items-center justify-center">
-                        <img src="image/default_profile.png"
-                            alt="User Profile"
-                            class="w-full h-full object-cover scale-125 transition-transform hover:scale-150">
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-white">
-                            <?php echo isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Guest'; ?>
-                        </p>
-                        <p class="text-xs text-emerald-500">Online</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
+        <!-- SIDEBAR ADA DISINI -->
+        <?php include 'layouts/sidebar.php'; ?>
 
         <main class="flex-1 flex flex-col overflow-y-auto relative pb-24" id="main-content">
             
             <!-- HEADER ADA DISINI -->
-            <header class="h-16 shrink-0 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-10 px-8 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <button id="sidebarToggle" class="text-slate-400 hover:text-white mr-4 transition-transform active:scale-95">
-                    </button>
-                    <h2 class="text-lg font-medium text-white">Daily Activity Report</h2>
-                </div>
-                
-
-                <div class="flex items-center gap-4">
-                    
-                    <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4 mr-2">
-                        Total Report: <span class="text-white font-bold">
-                            <?php
-                            $countQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM tb_daily_reports");
-                                if ($countQuery) {
-                                    $countData = mysqli_fetch_assoc($countQuery);
-                                    echo $countData['total'];
-                                } else {
-                                     echo "Query gagal";
-                                }
-                            ?>
-                        </span>
-                    </div>
-                    
-                    <div class="relative">
-                        <button onclick="toggleNotif()" class="p-2 text-slate-400 hover:text-white relative transition focus:outline-none">
-                            <i class="fas fa-bell"></i>
-
-                            <?php if ($totalNotif > 0): ?>
-                                <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
-                            <?php endif; ?>
-                        </button>
-
-                        <button onclick="toggleTheme()" class="p-2 text-slate-400 hover:text-white transition focus:outline-none mr-2" title="Ganti Tema">
-                            <i id="themeIcon" class="fas fa-sun"></i>
-                        </button>
-
-                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden origin-top-right transform transition-all">
-                            <div class="px-4 py-3 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h3>
-                                <span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded"><?php echo $totalNotif; ?> New</span>
-                            </div>
-
-                            <div class="max-h-80 overflow-y-auto custom-scroll">
-                                <?php if ($totalNotif == 0): ?>
-                                    <div class="px-4 py-6 text-center text-slate-500">
-                                        <i class="fas fa-check-circle text-2xl mb-2 text-emerald-500/50"></i>
-                                        <p class="text-xs">Semua sistem aman.</p>
-                                    </div>
-                                <?php else: ?>
-
-                                    <?php if ($countBreakdown > 0): ?>
-                                        <div class="px-4 py-2 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Mesin Breakdown (<?php echo $countBreakdown; ?>)
-                                        </div>
-                                        <?php while ($rowBD = mysqli_fetch_assoc($queryBreakdownList)): ?>
-                                            <a href="laporan.php" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-red-500/20 p-1.5 rounded text-red-400 mt-0.5 group-hover:bg-red-500 group-hover:text-white transition"><i class="fas fa-car-crash text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowBD['machine_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400 line-clamp-1"><?php echo $rowBD['problem']; ?></p>
-                                                        <p class="text-[10px] text-red-400 mt-1">Sejak: <?php echo date('d M, H:i', strtotime($rowBD['date_log'] . ' ' . $rowBD['time_start'])); ?></p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-
-                                    <?php if ($countOverdue > 0): ?>
-                                        <div class="px-4 py-2 bg-orange-500/10 text-orange-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Project Overdue (<?php echo $countOverdue; ?>)
-                                        </div>
-                                        <?php while ($rowOD = mysqli_fetch_assoc($queryOverdueList)): ?>
-                                            <a href="#table-project" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-orange-500/20 p-1.5 rounded text-orange-400 mt-0.5 group-hover:bg-orange-500 group-hover:text-white transition"><i class="far fa-clock text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowOD['project_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400">Lead: <?php echo explode(',', $rowOD['team_members'])[0]; ?></p>
-
-                                                        <?php
-                                                        $due = strtotime($rowOD['due_date']);
-                                                        $now = time();
-                                                        $daysLate = floor(($now - $due) / (60 * 60 * 24));
-                                                        ?>
-                                                        <p class="text-[10px] text-orange-400 mt-1 font-bold">Telat <?php echo $daysLate; ?> hari (<?php echo date('d M', $due); ?>)</p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 space-y-6 fade-in">
                 <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
@@ -324,7 +167,7 @@ $totalNotif = $countBreakdown + $countOverdue;
                                         </div>
                                     </div>
 
-                                    <div class="flex items-end gap-2 w-full md:w-auto">
+                                    <!-- <div class="flex items-end gap-2 w-full md:w-auto">
                                         <div class="flex-1 md:flex-none">
                                             <label class="block text-xs text-slate-400 mb-1">From</label>
                                             <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
@@ -342,6 +185,25 @@ $totalNotif = $countBreakdown + $countOverdue;
                                                 <input type="date" id="endDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 appearance-none">
                                             </div>
                                         </div>
+                                    </div> -->
+                                    <div class="flex items-end gap-2 w-full md:w-auto mt-4 xl:mt-0">
+    
+                                        <div class="flex-1 md:flex-none">
+                                            <label class="block text-xs text-slate-400 mb-1">From</label>
+                                            <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
+                                                <input type="date" id="startDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 cursor-pointer [&::-webkit-calendar-picker-indicator]:invert">
+                                            </div>
+                                        </div>
+
+                                        <span class="text-slate-500 mb-3 self-center">-</span>
+
+                                        <div class="flex-1 md:flex-none">
+                                            <label class="block text-xs text-slate-400 mb-1">To</label>
+                                            <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
+                                                <input type="date" id="endDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 cursor-pointer [&::-webkit-calendar-picker-indicator]:invert">
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
                                 
@@ -359,7 +221,7 @@ $totalNotif = $countBreakdown + $countOverdue;
                                             ?>
                                             </select>
                                         </form>
-                                    </div>
+                                </div>
 
                                 <!-- INPUT DAN EXPORT EXCEL ADA DISINI -->
                                 <div class="flex gap-2 w-full xl:w-auto justify-start xl:justify-end mt-2 xl:mt-0">
@@ -437,7 +299,8 @@ $totalNotif = $countBreakdown + $countOverdue;
                                         }
                                     ?>
 
-                                        <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500" data-date="<?php echo $row['date_log']; ?>">
+                                            <tr class="hover:bg-slate-800/50 transition border-b border-slate-800" data-date="<?php echo $row['date_log']; ?>">
+                                        <!-- <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500" data-date="<?php echo $row['date_log']; ?>"> -->
                                             <td class="px-6 py-4 text-center">
                                                 <button onclick="toggleDetail('lap<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">
                                                     <i class="fas fa-plus text-xs transition-transform" id="icon-lap<?php echo $id; ?>"></i>
@@ -909,38 +772,64 @@ $totalNotif = $countBreakdown + $countOverdue;
             </div>
         </div>
     </div>
-    <script src="assets/js/ui-sidebar.js"></script>
-    <script src="assets/js/ui-modal.js"></script>
+
+    <?php include 'layouts/mobile_nav.php'; ?>
+    <?php include 'layouts/scripts.php'; ?>
 
     <script>
-        // ==========================================
-        // 1. VARIABEL GLOBAL (Akses Public)
-        // ==========================================
-        let tomSelectPicCreate;
-        let tomSelectPicEdit;
+        // --- A. INISIALISASI TOM SELECT (PIC) ---
+        // Kita simpan instance-nya di variabel global biar bisa di-clear saat edit
+        var tomSelectPicCreate, tomSelectPicEdit;
 
-        // Fungsi Isi Form Edit (Global)
+        // document.addEventListener('DOMContentLoaded', function() {
+        // document.addEventListener('turbo:load', function() {
+        (function() {
+            // Init TomSelect untuk Modal Create (Dashboard & Laporan)
+            const configTom = { plugins: ['remove_button'], create: false, maxItems: 5, placeholder: "Pilih PIC..." };
+            
+            if (document.getElementById('create_pic')) {
+                tomSelectPicCreate = new TomSelect("#create_pic", configTom);
+            }
+            // Jika ada modal create dashboard (opsional)
+            if (document.getElementById('create_pic_dashboard')) {
+                new TomSelect("#create_pic_dashboard", configTom);
+            }
+            
+            // Init TomSelect untuk Modal Edit
+            if (document.getElementById('edit_pic')) {
+                tomSelectPicEdit = new TomSelect("#edit_pic", configTom);
+            }
+
+            // --- B. LOGIC PAGINATION & FILTER TABLE (CLIENT SIDE) ---
+            initTablePagination();
+
+            // --- C. LOGIC UPLOAD FILE PREVIEW ---
+            setupFileUpload('file_evidence', 'file-name-display');
+            setupFileUpload('file_evidence_edit', 'file-name-edit');
+        })();
+
+        // --- FUNGSI EDIT REPORT ---
         function editReport(id, date, end_date, plant, shift, start, finish, machine, cat, prob, act, pic, part, status) {
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_date').value = date;
             document.getElementById('edit_end_date').value = end_date;
-            if (document.getElementById('edit_plant')) document.getElementById('edit_plant').value = plant;
-            if (document.getElementById('edit_shift')) document.getElementById('edit_shift').value = shift;
             document.getElementById('edit_start').value = start;
             document.getElementById('edit_finish').value = finish;
             document.getElementById('edit_machine').value = machine;
-            if (document.getElementById('edit_cat')) document.getElementById('edit_cat').value = cat;
+            
+            // Handle Dropdown Biasa (Safe Check)
+            const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
+            setVal('edit_plant', plant);
+            setVal('edit_shift', shift);
+            setVal('edit_cat', cat);
+            setVal('edit_status', status);
 
-            const realProblem = prob.split("_ENTER_").join("\n");
-            const realAction = act.split("_ENTER_").join("\n");
-            document.getElementById('edit_problem').value = realProblem;
-            document.getElementById('edit_action').value = realAction;
+            // Handle Textarea (Convert _ENTER_ back to Newline)
+            document.getElementById('edit_problem').value = prob.split("_ENTER_").join("\n");
+            document.getElementById('edit_action').value = act.split("_ENTER_").join("\n");
+            document.getElementById('edit_part').value = part.split("_ENTER_").join("\n");
 
-            const realPart = part.split("_ENTER_").join("\n");
-            document.getElementById('edit_part').value = realPart;
-            if (document.getElementById('edit_status')) document.getElementById('edit_status').value = status;
-
-            // Populate Tom Select
+            // Handle TomSelect PIC
             if (tomSelectPicEdit) {
                 tomSelectPicEdit.clear();
                 if (pic) {
@@ -951,42 +840,45 @@ $totalNotif = $countBreakdown + $countOverdue;
             openModal('modalEditReport');
         }
 
-        // Fungsi Hapus (Global)
+        // --- FUNGSI DELETE REPORT ---
         function confirmDeleteReport(id) {
             Swal.fire({
                 title: 'Hapus Laporan?',
                 text: "Data tidak bisa dikembalikan!",
                 icon: 'warning',
                 showCancelButton: true,
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Hapus!'
+                background: '#1e293b', color: '#fff',
+                confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hapus!'
             }).then((result) => {
                 if (result.isConfirmed) window.location.href = 'delete/delete_report.php?id=' + id;
-            })
+            });
         }
 
-        // Fungsi Toggle Notif (Global)
-        function toggleNotif() {
-            const dropdown = document.getElementById('notifDropdown');
-            if (dropdown.classList.contains('hidden')) dropdown.classList.remove('hidden');
-            else dropdown.classList.add('hidden');
-        }
-        window.addEventListener('click', function(e) {
-            const btn = document.querySelector('button[onclick="toggleNotif()"]');
-            const dropdown = document.getElementById('notifDropdown');
-            if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
+        // --- FUNGSI TOGGLE DETAIL ROW ---
+        function toggleDetail(rowId) {
+            const detailRow = document.getElementById('detail-' + rowId);
+            const icon = document.getElementById('icon-' + rowId);
+            if (detailRow && icon) {
+                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+                if (isHidden) {
+                    detailRow.classList.remove('hidden');
+                    detailRow.style.display = 'table-row';
+                    icon.classList.replace('fa-plus', 'fa-minus');
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    detailRow.classList.add('hidden');
+                    detailRow.style.display = 'none';
+                    icon.classList.replace('fa-minus', 'fa-plus');
+                    icon.style.transform = 'rotate(0deg)';
+                }
             }
-        });
+        }
 
-        // Fungsi Download Excel (Global)
+        // --- FUNGSI DOWNLOAD EXCEL ---
         function downloadExcel() {
-            const searchVal = document.getElementById('searchInput').value;
-            const startVal = document.getElementById('startDate').value;
-            const endVal = document.getElementById('endDate').value;
+            const searchVal = document.getElementById('searchInput')?.value || '';
+            const startVal = document.getElementById('startDate')?.value || '';
+            const endVal = document.getElementById('endDate')?.value || '';
             let url = 'export/export_laporan.php?export=true';
             if (searchVal) url += '&search=' + encodeURIComponent(searchVal);
             if (startVal) url += '&start=' + encodeURIComponent(startVal);
@@ -994,328 +886,114 @@ $totalNotif = $countBreakdown + $countOverdue;
             window.location.href = url;
         }
 
-        // Fungsi Toggle Detail (VERSI KUAT)
-        function toggleDetail(rowId) {
-            const detailRow = document.getElementById('detail-' + rowId);
-            const icon = document.getElementById('icon-' + rowId);
-            if (detailRow && icon) {
-                // Cek apakah tersembunyi (baik via class ATAU style inline dari pagination)
-                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-
-                if (isHidden) {
-                    detailRow.classList.remove('hidden');
-                    detailRow.style.display = 'table-row'; // Paksa Tampil
-                    icon.classList.remove('fa-plus');
-                    icon.classList.add('fa-minus');
-                    icon.style.transform = 'rotate(180deg)';
-                } else {
-                    detailRow.classList.add('hidden');
-                    detailRow.style.display = 'none'; // Paksa Sembunyi
-                    icon.classList.remove('fa-minus');
-                    icon.classList.add('fa-plus');
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
-
-        // ==========================================
-        // 2. LOGIC UTAMA (DOM LOADED)
-        // ==========================================
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // A. Inisialisasi Tom Select
-            if (document.getElementById('create_pic')) {
-                tomSelectPicCreate = new TomSelect("#create_pic", {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: 5,
-                    placeholder: "Pilih PIC..."
-                });
-            }
-            if (document.getElementById('edit_pic')) {
-                tomSelectPicEdit = new TomSelect("#edit_pic", {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: 5,
-                    placeholder: "Pilih PIC..."
-                });
-            }
-
-            // 3. AKTIFKAN DI MODAL INPUT LAPORAN (INI YANG KURANG TADI) 👇
-            if (document.getElementById('create_pic_dashboard')) {
-                new TomSelect("#create_pic_dashboard", {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: 5,
-                    placeholder: "Pilih PIC..."
-                });
-            }
-
-            // B. Logic Upload Filename (MULTIPLE SUPPORT)
-            const setupFileUpload = (inputId, displayId) => {
-                const fileInput = document.getElementById(inputId);
-                const fileNameDisplay = document.getElementById(displayId);
-
-                if (fileInput && fileNameDisplay) {
-                    fileInput.addEventListener('change', function(e) {
-                        const files = this.files;
-
-                        // 1. Cek Jumlah File (Max 5)
-                        if (files.length > 5) {
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Terlalu Banyak!',
-                                text: 'Maksimal hanya boleh upload 5 gambar sekaligus.',
-                                confirmButtonColor: '#f59e0b'
-                            });
-                            this.value = ''; // Reset
-                            fileNameDisplay.classList.add('hidden');
-                            return;
-                        }
-
-                        // 2. Tampilkan Nama File
-                        if (files.length > 0) {
-                            fileNameDisplay.classList.remove('hidden');
-                            if (files.length === 1) {
-                                fileNameDisplay.textContent = `📄 ${files[0].name}`;
-                            } else {
-                                fileNameDisplay.textContent = `📂 ${files.length} file dipilih`;
-                            }
-                        } else {
-                            fileNameDisplay.classList.add('hidden');
-                        }
-                    });
-                }
-            };
-
-            // Jalankan fungsi untuk Modal Create & Edit
-            setupFileUpload('file_evidence', 'file-name-display');
-            setupFileUpload('file_evidence_edit', 'file-name-edit');
-
-            // C. Logic Notifikasi URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const status = urlParams.get('status');
-            const msg = urlParams.get('msg');
-
-            function cleanUrl() {
-                window.history.replaceState(null, null, window.location.pathname);
-            }
-
-            if (status === 'success') Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: 'Data tersimpan.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669'
-            }).then(() => cleanUrl());
-            else if (status === 'updated') Swal.fire({
-                icon: 'success',
-                title: 'Updated!',
-                text: 'Data diperbarui.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669'
-            }).then(() => cleanUrl());
-            else if (status === 'deleted') Swal.fire({
-                icon: 'success',
-                title: 'Terhapus!',
-                text: 'Data dihapus.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669'
-            }).then(() => cleanUrl());
-            else if (status === 'error') Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: msg,
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#ef4444'
-            }).then(() => cleanUrl());
-
-
-            // D. Logic Pagination & Filter (Client Side)
-            const tableBody = document.getElementById('tableReportBody');
-            if (tableBody) {
-                const rowsPerPage = 10;
-                // Ambil baris MASTER saja (abaikan detail)
-                let allRows = Array.from(tableBody.querySelectorAll('tr'));
-                allRows = allRows.filter(row => !row.id.includes('detail-'));
-
-                const searchInput = document.getElementById('searchInput');
-                const startDateInput = document.getElementById('startDate');
-                const endDateInput = document.getElementById('endDate');
-                const pageInfo = document.getElementById('pageInfo');
-                const paginationControls = document.getElementById('paginationControls');
-
-                let currentPage = 1;
-
-                function renderTable() {
-                    const searchText = searchInput ? searchInput.value.toLowerCase() : '';
-                    const startVal = startDateInput ? startDateInput.value : '';
-                    const endVal = endDateInput ? endDateInput.value : '';
-
-                    // FILTER
-                    const filteredRows = allRows.filter(row => {
-                        const textMatch = row.textContent.toLowerCase().includes(searchText);
-                        let dateMatch = true;
-                        const rowDate = row.getAttribute('data-date');
-                        if (startVal && rowDate < startVal) dateMatch = false;
-                        if (endVal && rowDate > endVal) dateMatch = false;
-                        return textMatch && dateMatch;
-                    });
-
-                    // PAGINATION CALCULATION
-                    const totalItems = filteredRows.length;
-                    const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-                    if (currentPage > totalPages) currentPage = 1;
-                    if (currentPage < 1 && totalPages > 0) currentPage = 1;
-
-                    const start = (currentPage - 1) * rowsPerPage;
-                    const end = start + rowsPerPage;
-
-                    // RENDER VISIBILITY
-                    // 1. Sembunyikan semua baris (Master & Detail)
-                    const allTrs = tableBody.querySelectorAll('tr');
-                    allTrs.forEach(tr => tr.style.display = 'none');
-
-                    // 2. Tampilkan Master yang lolos filter & halaman
-                    filteredRows.slice(start, end).forEach(row => {
-                        row.style.display = '';
-                    });
-
-                    if (pageInfo) pageInfo.innerText = `Showing ${totalItems === 0 ? 0 : start + 1} - ${Math.min(end, totalItems)} of ${totalItems} reports`;
-                    renderButtons(totalPages);
-                }
-
-                function renderButtons(totalPages) {
-                    if (!paginationControls) return;
-                    paginationControls.innerHTML = "";
-                    if (totalPages <= 1) return;
-
-                    const createBtn = (text, page, isActive = false, isDisabled = false) => {
-                        const btn = document.createElement('button');
-                        btn.innerText = text;
-                        btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-                        if (isDisabled) {
-                            btn.classList.add('opacity-50', 'cursor-not-allowed');
-                            btn.disabled = true;
-                        }
-                        btn.addEventListener('click', () => {
-                            currentPage = page;
-                            renderTable();
-                        });
-                        return btn;
-                    };
-
-                    paginationControls.appendChild(createBtn("Prev", currentPage - 1, false, currentPage === 1));
-                    let startPage = Math.max(1, currentPage - 2);
-                    let endPage = Math.min(totalPages, currentPage + 2);
-                    for (let i = startPage; i <= endPage; i++) {
-                        paginationControls.appendChild(createBtn(i, i, i === currentPage));
+        // --- HELPER: FILE UPLOAD PREVIEW ---
+        function setupFileUpload(inputId, displayId) {
+            const fileInput = document.getElementById(inputId);
+            const fileNameDisplay = document.getElementById(displayId);
+            if (fileInput && fileNameDisplay) {
+                fileInput.addEventListener('change', function() {
+                    const files = this.files;
+                    if (files.length > 5) {
+                        Swal.fire({ icon: 'warning', title: 'Maksimal 5 File!', background: '#1e293b', color: '#fff' });
+                        this.value = ''; fileNameDisplay.classList.add('hidden'); return;
                     }
-                    paginationControls.appendChild(createBtn("Next", currentPage + 1, false, currentPage === totalPages));
-                }
-
-                if (searchInput) searchInput.addEventListener('keyup', () => {
-                    currentPage = 1;
-                    renderTable();
+                    if (files.length > 0) {
+                        fileNameDisplay.classList.remove('hidden');
+                        fileNameDisplay.textContent = files.length === 1 ? `📄 ${files[0].name}` : `📂 ${files.length} file dipilih`;
+                    } else {
+                        fileNameDisplay.classList.add('hidden');
+                    }
                 });
-                if (startDateInput) startDateInput.addEventListener('change', () => {
-                    currentPage = 1;
-                    renderTable();
-                });
-                if (endDateInput) endDateInput.addEventListener('change', () => {
-                    currentPage = 1;
-                    renderTable();
-                });
-
-                // Initial Render
-                renderTable();
             }
-        });
-    </script>
-
-<button onclick="toggleMobileMenu()" id="mobileMenuBtn" class="fixed bottom-24 right-4 z-[60] md:hidden bg-emerald-600/50 text-white w-12 h-12 rounded-full shadow-lg shadow-emerald-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-1 border-slate-900">
-    <i id="iconOpen" class="fas fa-bars text-lg"></i>
-    <i id="iconClose" class="fas fa-times text-lg hidden"></i>
-</button>
-
-<nav id="mobileNavbar" class="fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl flex justify-around items-center py-3 z-50 md:hidden transition-transform duration-300 ease-in-out translate-y-[150%] shadow-2xl">
-
-    <?php $page = basename($_SERVER['PHP_SELF']); ?>
-
-    <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fa-solid fa-house-chimney text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
-    </a>
-
-    <a href="database.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'database.php' || $page == 'master_items.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-database text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Database</span>
-    </a>
-
-    <a href="laporan.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'laporan.php' || $page == 'my_laporan.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-clipboard-list text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Report</span>
-    </a>
-
-    <a href="project.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'project.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-project-diagram text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
-    </a>
-
-    <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
-    </a>
-
-    <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition group">
-        <i class="fas fa-sign-out-alt text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Logout</span>
-    </a>
-
-</nav>
-
-<script>
-    function toggleMobileMenu() {
-        const navbar = document.getElementById('mobileNavbar');
-        const iconOpen = document.getElementById('iconOpen');
-        const iconClose = document.getElementById('iconClose');
-        const btn = document.getElementById('mobileMenuBtn');
-
-        // Toggle Class untuk menampilkan/menyembunyikan Navbar
-        // translate-y-[150%] artinya geser ke bawah sejauh 150% dari tingginya (ngumpet)
-        // translate-y-0 artinya kembali ke posisi asal (muncul)
-        if (navbar.classList.contains('translate-y-[150%]')) {
-            // MUNCULKAN MENU
-            navbar.classList.remove('translate-y-[150%]');
-            navbar.classList.add('translate-y-0');
-            
-            // Ubah Icon jadi X
-            iconOpen.classList.add('hidden');
-            iconClose.classList.remove('hidden');
-
-            // Ubah warna tombol jadi merah (biar kelihatan tombol close)
-            btn.classList.remove('bg-emerald-600');
-            btn.classList.add('bg-slate-700');
-        } else {
-            // SEMBUNYIKAN MENU
-            navbar.classList.add('translate-y-[150%]');
-            navbar.classList.remove('translate-y-0');
-            
-            // Ubah Icon jadi Hamburger
-            iconOpen.classList.remove('hidden');
-            iconClose.classList.add('hidden');
-
-            // Balikin warna tombol
-            btn.classList.add('bg-emerald-600');
-            btn.classList.remove('bg-slate-700');
         }
-    }
-</script>
+
+        // --- HELPER: TABLE PAGINATION & FILTER ---
+        function initTablePagination() {
+            const tableBody = document.getElementById('tableReportBody');
+            if (!tableBody) return;
+
+            const rowsPerPage = 10;
+            let allRows = Array.from(tableBody.querySelectorAll('tr')).filter(row => !row.id.includes('detail-'));
+            let currentPage = 1;
+
+            const searchInput = document.getElementById('searchInput');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const pageInfo = document.getElementById('pageInfo');
+            const paginationControls = document.getElementById('paginationControls');
+
+            function renderTable() {
+                const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+                const startVal = startDateInput ? startDateInput.value : '';
+                const endVal = endDateInput ? endDateInput.value : '';
+
+                // Filter Logic
+                const filteredRows = allRows.filter(row => {
+                    const textMatch = row.textContent.toLowerCase().includes(searchText);
+                    let dateMatch = true;
+                    const rowDate = row.getAttribute('data-date');
+                    if (startVal && rowDate < startVal) dateMatch = false;
+                    if (endVal && rowDate > endVal) dateMatch = false;
+                    return textMatch && dateMatch;
+                });
+
+                // Pagination Logic
+                const totalItems = filteredRows.length;
+                const totalPages = Math.ceil(totalItems / rowsPerPage);
+                if (currentPage > totalPages) currentPage = 1;
+                
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+
+                // Hide All
+                tableBody.querySelectorAll('tr').forEach(tr => tr.style.display = 'none');
+
+                // Show Filtered Master Rows
+                filteredRows.slice(start, end).forEach(row => row.style.display = '');
+
+                // Update Info Text
+                if(pageInfo) pageInfo.innerText = `Showing ${totalItems === 0 ? 0 : start + 1} - ${Math.min(end, totalItems)} of ${totalItems} reports`;
+                
+                // Render Buttons
+                renderButtons(totalPages);
+            }
+
+            function renderButtons(totalPages) {
+                if (!paginationControls) return;
+                paginationControls.innerHTML = "";
+                if (totalPages <= 1) return;
+
+                const createBtn = (text, page) => {
+                    const btn = document.createElement('button');
+                    btn.innerText = text;
+                    const isActive = (page === currentPage);
+                    btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+                    btn.onclick = () => { currentPage = page; renderTable(); };
+                    return btn;
+                };
+
+                if (currentPage > 1) paginationControls.appendChild(createBtn("Prev", currentPage - 1));
+                
+                let startP = Math.max(1, currentPage - 2);
+                let endP = Math.min(totalPages, currentPage + 2);
+                for (let i = startP; i <= endP; i++) paginationControls.appendChild(createBtn(i, i));
+                
+                if (currentPage < totalPages) paginationControls.appendChild(createBtn("Next", currentPage + 1));
+            }
+
+            // Event Listeners
+            [searchInput, startDateInput, endDateInput].forEach(el => {
+                if(el) {
+                    // Gunakan event 'input', ini paling sakti untuk teks DAN date picker
+                    el.addEventListener('input', () => { 
+                        currentPage = 1; 
+                        renderTable(); 
+                    });
+                }
+            });
+            renderTable();
+            }
+    </script>
 </body>
 
 </html>

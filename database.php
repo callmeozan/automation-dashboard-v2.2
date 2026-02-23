@@ -1,70 +1,18 @@
 <?php
-session_start();
-// --- CEK LOGIN (SATPAM) ---
-// Jika session 'user_id' tidak ada, artinya dia belum login.
-if (!isset($_SESSION['user_id'])) {
-    // Tendang balik ke halaman login
-    header("Location: index.php");
-    exit(); // Stop script di sini, jangan lanjut ke bawah!
-}
-include 'config.php'; // Panggil koneksi database
+include 'layouts/auth_and_config.php';
 
-// Cek Login (Opsional, biar aman)
-if (!isset($_SESSION['user_id']) && !isset($_SESSION['username'])) {
-    // header("Location: index.php"); // Aktifkan nanti kalau mau proteksi halaman
-}
+// ... (Query totalAssets yang tadi) ...
 
-// --- COPY LOGIKA NOTIFIKASI DARI DASHBOARD KE SINI ---
-// A. Hitung Breakdown
-$queryNotif1 = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_daily_reports WHERE category='Breakdown' AND status='Open'");
-$countBreakdown = mysqli_fetch_assoc($queryNotif1)['total'];
-$queryBreakdownList = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE category='Breakdown' AND status='Open' ORDER BY date_log DESC LIMIT 5");
+$pageTitle = "Database Inventory";
 
-// B. Hitung Overdue
-$today = date('Y-m-d');
-$queryNotif2 = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_projects WHERE due_date < '$today' AND status != 'Done'");
-$countOverdue = mysqli_fetch_assoc($queryNotif2)['total'];
-$queryOverdueList = mysqli_query($conn, "SELECT * FROM tb_projects WHERE due_date < '$today' AND status != 'Done' ORDER BY due_date ASC LIMIT 5");
-
-// Total
-$totalNotif = $countBreakdown + $countOverdue;
-?>
-<!DOCTYPE html>
-<html lang="id">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="theme-color" content="#03142c">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Inventory - Automation Portal</title>
-
-    <link rel="icon" href="image/gajah_tunggal.png" type="image/png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
-    <link rel="stylesheet" href="assets/css/layouts/sidebar.css">
-    <link rel="stylesheet" href="assets/css/layouts/header.css">
-    <link rel="stylesheet" href="assets/css/components/button.css">
-    <link rel="stylesheet" href="assets/css/components/card.css">
-    <link rel="stylesheet" href="assets/css/components/modal.css">
-    <link rel="stylesheet" href="assets/css/main.css">
-    <script src="assets/vendor/sweetalert2.all.min.js"></script>
-    <script src="assets/vendor/tailwind.js"></script>
-
+// Kita bungkus CSS print Bapak ke dalam variable ini
+$extraHead = '
     <style>
         @media print {
-
-            /* Sembunyikan elemen yang tidak perlu saat print */
-            #sidebar,
-            header,
-            #paginationContainer,
-            .btn-action,
-            #searchInput,
-            button {
+            #sidebar, header, #paginationContainer, .btn-action, #searchInput, button {
                 display: none !important;
             }
-
-            /* Atur layout tabel agar lebar penuh & putih */
-            body,
-            #main-content {
+            body, #main-content {
                 background-color: white !important;
                 color: black !important;
                 overflow: visible !important;
@@ -72,220 +20,38 @@ $totalNotif = $countBreakdown + $countOverdue;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-
-            .bg-slate-800 {
-                background-color: white !important;
-                border: 1px solid #ccc !important;
-            }
-
-            table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                color: black !important;
-                font-size: 10pt !important;
-            }
-
-            th,
-            td {
-                border: 1px solid #000 !important;
-                padding: 5px !important;
-                color: black !important;
-            }
-
-            /* Paksa warna teks hitam */
-            .text-white,
-            .text-slate-400,
-            .text-blue-400,
-            .text-yellow-400 {
-                color: black !important;
-            }
-
-            /* Sembunyikan kolom Aksi (Tombol Edit/Hapus) saat print */
-            th:last-child,
-            td:last-child {
-                display: none !important;
-            }
+            .bg-slate-800 { background-color: white !important; border: 1px solid #ccc !important; }
+            table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; }
+            th, td { border: 1px solid #000 !important; padding: 5px !important; color: black !important; }
+            .text-white, .text-slate-400, .text-blue-400, .text-yellow-400 { color: black !important; }
+            th:last-child, td:last-child { display: none !important; }
         }
     </style>
+';
+?>
+
+<head>
+    <meta name="turbo-cache-control" content="no-preview">
 </head>
+
+<!DOCTYPE html>
+<html lang="id">
+
+<!-- HEAD ADA DISINI -->
+ <?php include 'layouts/head.php'; ?>
 
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
-        <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 hidden md:flex">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800">
-                <h1 class="text-xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
-            </div>
 
-            <nav class="flex-1 px-4 py-6 space-y-2">
-                <a href="dashboard.php" class="nav-item">
-                    <i class="fas fa-tachometer-alt w-6"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-
-                <div class="relative">
-                    <button onclick="toggleDbMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-database w-6 group-hover:text-emerald-400 transition"></i>
-                            <span class="group-hover:text-white transition">Database</span>
-                        </div>
-                        <i id="arrowDb" class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200"></i>
-                    </button>
-
-                    <div id="dbSubmenu" class="hidden pl-10 space-y-1 mt-1 bg-slate-900/50 py-2 border-l border-slate-800 ml-3">
-                        <a href="database.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Machine / Assets
-                        </a>
-                        <a href="master_items.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Master Items
-                        </a>
-                    </div>
-                </div>
-
-                <a href="laporan.php" class="nav-item">
-                    <i class="fas fa-clipboard-list w-6"></i>
-                    <span>Daily Report</span>
-                </a>
-
-                <a href="project.php" class="nav-item">
-                    <i class="fas fa-project-diagram w-6"></i>
-                    <span>Projects</span>
-                </a>
-
-                <a href="overtime.php" class="nav-item">
-                    <i class="fas fa-clock w-6"></i>
-                    <span>Overtime</span>
-                </a>
-
-                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                    <a href="dashboard.php?open_modal=adduser" class="nav-item hover:text-emerald-400 transition">
-                        <i class="fa-solid fa-user-plus w-6"></i>
-                        <span>Add User</span>
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
-                    <a href="manage_users.php" class="nav-item">
-                        <i class="fas fa-users-cog w-6"></i> <span class="font-medium">User Management</span>
-                    </a>
-                <?php endif; ?>
-
-                <a href="logout.php" class="nav-item">
-                    <i class="fas fa-solid fa-right-from-bracket w-6"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
-
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 border border-slate-500 overflow-hidden flex items-center justify-center">
-                        <img src="image/default_profile.png"
-                            alt="User Profile"
-                            class="w-full h-full object-cover scale-125 transition-transform hover:scale-150">
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-white">
-                            <?php echo isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Guest'; ?>
-                        </p>
-                        <p class="text-xs text-emerald-500">Online</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
+        <!-- SIDEBAR ADA DISINI -->
+        <?php include 'layouts/sidebar.php'; ?>
 
         <main class="flex-1 flex flex-col overflow-y-auto relative pb-24" id="main-content">
-            <header class="h-16 shrink-0 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-10 px-8 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <button id="sidebarToggle" class="text-slate-400 hover:text-white mr-4 transition-transform active:scale-95">
-                    </button>
-                    <h2 class="text-lg font-medium text-white">Database Inventory</h2>
-                </div>
 
-                <div class="flex items-center gap-4">
-                    <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4 mr-2">
-                        Total Items: <span class="text-white font-bold">
-                            <?php
-                            $countQuery = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_assets");
-                            $countData = mysqli_fetch_assoc($countQuery);
-                            echo $countData['total'];
-                            ?>
-                        </span>
-                    </div>
+        <!-- HEADER ADA DISINI -->
+         <?php include 'layouts/header.php'; ?>
 
-                    <div class="relative">
-                        <button onclick="toggleNotif()" class="p-2 text-slate-400 hover:text-white relative transition focus:outline-none">
-                            <i class="fas fa-bell"></i>
-                            <?php if ($totalNotif > 0): ?>
-                                <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
-                            <?php endif; ?>
-                        </button>
-
-                        <button onclick="toggleTheme()" class="p-2 text-slate-400 hover:text-white transition focus:outline-none mr-2" title="Ganti Tema">
-                            <i id="themeIcon" class="fas fa-sun"></i>
-                        </button>
-
-                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden origin-top-right transform transition-all">
-                            <div class="px-4 py-3 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h3>
-                                <span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded"><?php echo $totalNotif; ?> New</span>
-                            </div>
-
-                            <div class="max-h-80 overflow-y-auto custom-scroll">
-                                <?php if ($totalNotif == 0): ?>
-                                    <div class="px-4 py-6 text-center text-slate-500">
-                                        <i class="fas fa-check-circle text-2xl mb-2 text-emerald-500/50"></i>
-                                        <p class="text-xs">Semua sistem aman.</p>
-                                    </div>
-                                <?php else: ?>
-
-                                    <?php if ($countBreakdown > 0): ?>
-                                        <div class="px-4 py-2 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Mesin Breakdown (<?php echo $countBreakdown; ?>)
-                                        </div>
-                                        <?php while ($rowBD = mysqli_fetch_assoc($queryBreakdownList)): ?>
-                                            <a href="laporan.php" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-red-500/20 p-1.5 rounded text-red-400 mt-0.5 group-hover:bg-red-500 group-hover:text-white transition"><i class="fas fa-car-crash text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowBD['machine_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400 line-clamp-1"><?php echo $rowBD['problem']; ?></p>
-                                                        <p class="text-[10px] text-red-400 mt-1">Sejak: <?php echo date('d M, H:i', strtotime($rowBD['date_log'] . ' ' . $rowBD['time_start'])); ?></p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-
-                                    <?php if ($countOverdue > 0): ?>
-                                        <div class="px-4 py-2 bg-orange-500/10 text-orange-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Project Overdue (<?php echo $countOverdue; ?>)
-                                        </div>
-                                        <?php while ($rowOD = mysqli_fetch_assoc($queryOverdueList)): ?>
-                                            <a href="#table-project" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-orange-500/20 p-1.5 rounded text-orange-400 mt-0.5 group-hover:bg-orange-500 group-hover:text-white transition"><i class="far fa-clock text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowOD['project_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400">Lead: <?php echo explode(',', $rowOD['team_members'])[0]; ?></p>
-
-                                                        <?php
-                                                        $due = strtotime($rowOD['due_date']);
-                                                        $now = time();
-                                                        $daysLate = floor(($now - $due) / (60 * 60 * 24));
-                                                        ?>
-                                                        <p class="text-[10px] text-orange-400 mt-1 font-bold">Telat <?php echo $daysLate; ?> hari (<?php echo date('d M', $due); ?>)</p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
+         <!-- HALAMAN UTAMA DATABASE -->
             <div class="p-8 space-y-8 fade-in">
                 <div class="flex border-b border-slate-700 mb-6">
                     <a href="database.php" class="px-6 py-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400">
@@ -758,288 +524,43 @@ $totalNotif = $countBreakdown + $countOverdue;
         </div>
     </div>
 
-    <script src="assets/js/ui-sidebar.js"></script>
-    <script src="assets/js/ui-modal.js"></script>
+    <?php include 'layouts/mobile_nav.php'; ?>
+    <?php include 'layouts/scripts.php'; ?>
 
+    <!-- SCRIPT UTAMA DATABASE.PHP -->
     <script>
-        // --- FUNGSI EXPAND ROW (+) (VERSI ANTI-BENTROK) ---
-        function toggleDetail(rowId) {
-            const detailRow = document.getElementById('detail-' + rowId);
-            const icon = document.getElementById('icon-' + rowId);
+        window.rowsPerPage = window.rowsPerPage || 10;
+        window.currentPage = window.currentPage || 1;
+        window.currentSearchKeyword = window.currentSearchKeyword || "";
+        window.allRows = window.allRows || [];
 
-            if (detailRow && icon) {
-                // Cek apakah baris tersembunyi (baik via class ATAU style)
-                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-
-                if (isHidden) {
-                    // BUKA: Paksa tampil via style agar mengalahkan pagination
-                    detailRow.classList.remove('hidden');
-                    detailRow.style.display = 'table-row';
-
-                    // Putar Ikon
-                    icon.classList.remove('fa-plus');
-                    icon.classList.add('fa-minus');
-                    icon.style.transform = 'rotate(180deg)';
-                } else {
-                    // TUTUP
-                    detailRow.classList.add('hidden');
-                    detailRow.style.display = 'none';
-
-                    // Balikin Ikon
-                    icon.classList.remove('fa-minus');
-                    icon.classList.add('fa-plus');
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            } else {
-                console.error("Element detail tidak ditemukan: " + rowId);
-            }
-        }
-
-        // --- 1. FUNGSI ISI FORM EDIT (Dipanggil tombol Pensil) ---
-        function editAsset(id, plant, area, machine, comm,
-            plc_type, plc_soft, plc_ver,
-            hmi_type, hmi_soft, hmi_ver,
-            drive, ipc, scan) {
-
-            // 1. Identitas
-            document.getElementById('edit_id').value = id;
-            if (document.getElementById('edit_plant')) document.getElementById('edit_plant').value = plant;
-            if (document.getElementById('edit_area')) document.getElementById('edit_area').value = area;
-            if (document.getElementById('edit_machine')) document.getElementById('edit_machine').value = machine;
-            if (document.getElementById('edit_comm')) document.getElementById('edit_comm').value = comm;
-
-            // 2. PLC & HMI (Langsung isi)
-            document.getElementById('edit_plc_hw').value = plc_type;
-            document.getElementById('edit_plc_sw').value = plc_soft;
-            document.getElementById('edit_plc_ver').value = plc_ver;
-
-            document.getElementById('edit_hmi_hw').value = hmi_type;
-            document.getElementById('edit_hmi_sw').value = hmi_soft;
-            document.getElementById('edit_hmi_ver').value = hmi_ver;
-
-            // 3. DRIVE (Pecah string "HW - SW - Ver")
-            // Jika data kosong/tidak ada separator, aman karena pakai array safe check
-            let dParts = drive.split(' - ');
-            document.getElementById('edit_drive_hw').value = dParts[0] || '';
-            document.getElementById('edit_drive_sw').value = dParts[1] || '';
-            document.getElementById('edit_drive_ver').value = dParts[2] || '';
-
-            // 4. IPC (Pecah string "HW - OS - Apps")
-            let iParts = ipc.split(' - ');
-            document.getElementById('edit_ipc_hw').value = iParts[0] || '';
-            document.getElementById('edit_ipc_os').value = iParts[1] || '';
-            document.getElementById('edit_ipc_apps').value = iParts[2] || '';
-
-            // 5. SCANNER (Pecah string "HW - SW - Ver")
-            let sParts = scan.split(' - ');
-            document.getElementById('edit_scan_hw').value = sParts[0] || '';
-            document.getElementById('edit_scan_sw').value = sParts[1] || '';
-            document.getElementById('edit_scan_ver').value = sParts[2] || '';
-
-            openModal('modalEditAsset');
-        }
-
-        // --- 2. FUNGSI KONFIRMASI HAPUS ---
-        function confirmDeleteAsset(id) {
-            Swal.fire({
-                title: 'Hapus Data Mesin?',
-                text: "Data dan file lampiran akan hilang permanen!",
-                icon: 'warning',
-                showCancelButton: true,
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Hapus!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'delete/delete_asset.php?id=' + id;
-                }
-            })
-        }
-
-        // --- 3. FUNGSI TOGGLE NOTIFIKASI (Lonceng) ---
-        function toggleNotif() {
-            const dropdown = document.getElementById('notifDropdown');
-            if (dropdown.classList.contains('hidden')) {
-                dropdown.classList.remove('hidden');
-            } else {
-                dropdown.classList.add('hidden');
-            }
-        }
-
-        window.addEventListener('click', function(e) {
-            const btn = document.querySelector('button[onclick="toggleNotif()"]');
-            const dropdown = document.getElementById('notifDropdown');
-            if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
-
-        // --- 4. MASTER NOTIFIKASI SUKSES/GAGAL (Satu Blok Saja) ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get('status');
-        const msg = urlParams.get('msg');
-
-        function cleanUrl() {
-            window.history.replaceState(null, null, window.location.pathname);
-        }
-
-        if (status === 'success') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil Disimpan!',
-                text: 'Data aset baru telah ditambahkan.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669'
-            }).then(() => cleanUrl());
-        } else if (status === 'updated') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil Diupdate!',
-                text: 'Data spesifikasi mesin diperbarui.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669'
-            }).then(() => cleanUrl());
-        } else if (status === 'deleted') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Terhapus!',
-                text: 'Data mesin telah dihapus.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669'
-            }).then(() => cleanUrl());
-        } else if (status === 'error') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: msg || 'Terjadi kesalahan.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#ef4444'
-            }).then(() => cleanUrl());
-        }
-
-        // --- LOGIC UPLOAD FILE (MODAL EDIT) ---
-        const fileInputEdit = document.getElementById('file_spec_edit');
-        const fileNameEdit = document.getElementById('file-name-spec-edit');
-
-        if (fileInputEdit && fileNameEdit) {
-            fileInputEdit.addEventListener('change', function(e) {
-                if (this.files.length > 0) {
-                    fileNameEdit.classList.remove('hidden');
-                    fileNameEdit.textContent = `📄 ${this.files[0].name}`;
-                }
-            });
-        }
-
-        // ============================================================
-        // LOGIKA SEARCH & PAGINATION (CLIENT SIDE) - DATABASE PART
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // KONFIGURASI
-            const rowsPerPage = 10; // Mau tampil berapa baris per halaman?
-
-            // SELEKTOR
+        // document.addEventListener('DOMContentLoaded', function() {
+        // document.addEventListener('turbo:load', function() {
+        (function() {
+            if (document.documentElement.hasAttribute("data-turbo-preview")) return;
+            if (!window.location.pathname.includes('database.php')) return;
             const tableBody = document.getElementById('tableAssetBody');
-            // Ambil hanya baris MASTER (yang ada datanya), abaikan baris DETAIL (yang hidden)
-            // Kita pakai class 'asset-row' yang tadi ada di tr
-            // Kalau belum ada class 'asset-row' di tr, script ini akan ambil semua tr ganjil
-            let allRows = Array.from(tableBody.querySelectorAll('tr'));
+            if (!tableBody) return;
 
-            // PENTING: Karena tabel kita punya 2 baris per data (1 Master, 1 Detail Hidden),
-            // Kita harus memfilter agar yang dihitung cuma baris MASTER.
-            // Cara paling aman: Kita filter baris yang TIDAK punya ID 'detail-...'
-            allRows = allRows.filter(row => !row.id.includes('detail-'));
+            // Ambil hanya baris MASTER (yg punya class asset-row), abaikan detail row
+            // Pastikan di HTML <tr> nya sudah ada class="asset-row"
+            // Kalau belum ada, kita filter manual berdasarkan ID
+            const rawRows = Array.from(tableBody.querySelectorAll('tr'));
+            allRows = rawRows.filter(r => !r.id.startsWith('detail-')); 
+
+            // --- D. LOGIC UPLOAD FILE INFO ---
+            const fileInputEdit = document.getElementById('file_spec_edit');
+            if (fileInputEdit) {
+                fileInputEdit.addEventListener('change', function() {
+                    const fileNameEdit = document.getElementById('file-name-spec-edit');
+                    if (this.files.length > 0) {
+                        fileNameEdit.classList.remove('hidden');
+                        fileNameEdit.textContent = `📄 ${this.files[0].name}`;
+                    }
+                });
+            }
 
             const searchInput = document.getElementById('searchInput');
-            const pageInfo = document.getElementById('pageInfo');
-            const paginationControls = document.getElementById('paginationControls');
-
-            let currentPage = 1;
-            let currentSearchKeyword = "";
-
-            // FUNGSI UTAMA: RENDER TABEL
-            function renderTable() {
-                // 1. Filter Data dulu
-                const filteredRows = allRows.filter(row => {
-                    const text = row.textContent.toLowerCase();
-                    return text.includes(currentSearchKeyword);
-                });
-
-                // 2. Hitung Pagination
-                const totalItems = filteredRows.length;
-                const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-                if (currentPage > totalPages) currentPage = 1;
-                if (currentPage < 1 && totalPages > 0) currentPage = 1;
-
-                // 3. Hitung Slice
-                const start = (currentPage - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-
-                // 4. Manipulasi Tampilan
-                // Sembunyikan SEMUA baris (Master & Detail)
-                const allTrs = tableBody.querySelectorAll('tr');
-                allTrs.forEach(tr => tr.style.display = 'none');
-
-                // Tampilkan HANYA baris Master yang lolos filter & halaman
-                filteredRows.slice(start, end).forEach(row => {
-                    row.style.display = '';
-                    // Note: Baris detailnya tetap hidden sampai tombol (+) diklik, 
-                    // jadi tidak perlu kita apa-apakan.
-                });
-
-                // 5. Update Info Teks
-                const startInfo = totalItems === 0 ? 0 : start + 1;
-                const endInfo = Math.min(end, totalItems);
-                pageInfo.innerText = `Showing ${startInfo} - ${endInfo} of ${totalItems} entries`;
-
-                // 6. Bikin Tombol
-                renderButtons(totalPages);
-            }
-
-            // FUNGSI BIKIN TOMBOL
-            function renderButtons(totalPages) {
-                paginationControls.innerHTML = "";
-                if (totalPages <= 1) return;
-
-                const createBtn = (text, page, isActive = false, isDisabled = false) => {
-                    const btn = document.createElement('button');
-                    btn.innerText = text;
-                    btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-                    if (isDisabled) {
-                        btn.classList.add('opacity-50', 'cursor-not-allowed');
-                        btn.disabled = true;
-                    }
-                    btn.addEventListener('click', () => {
-                        currentPage = page;
-                        renderTable();
-                    });
-                    return btn;
-                };
-
-                // Prev
-                paginationControls.appendChild(createBtn("Prev", currentPage - 1, false, currentPage === 1));
-
-                // Angka (Logic simple: tampilin semua angka. Kalau mau canggih kaya Google ada titik2nya beda lagi)
-                // Kita batasi max 5 tombol angka biar gak kepanjangan
-                let startPage = Math.max(1, currentPage - 2);
-                let endPage = Math.min(totalPages, currentPage + 2);
-
-                for (let i = startPage; i <= endPage; i++) {
-                    paginationControls.appendChild(createBtn(i, i, i === currentPage));
-                }
-
-                // Next
-                paginationControls.appendChild(createBtn("Next", currentPage + 1, false, currentPage === totalPages));
-            }
-
-            // EVENT LISTENER SEARCH
             if (searchInput) {
                 searchInput.addEventListener('keyup', function() {
                     currentSearchKeyword = this.value.toLowerCase();
@@ -1048,95 +569,148 @@ $totalNotif = $countBreakdown + $countOverdue;
                 });
             }
 
-            // Jalankan pertama kali
             renderTable();
-        });
+        })();
 
-        // --- FUNGSI DOWNLOAD EXCEL SESUAI SEARCH ---
+        // --- A. EXPAND ROW (TOGGLE DETAIL) ---
+        function toggleDetail(rowId) {
+            const detailRow = document.getElementById('detail-' + rowId);
+            const icon = document.getElementById('icon-' + rowId);
+
+            if (detailRow && icon) {
+                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+                if (isHidden) {
+                    detailRow.classList.remove('hidden');
+                    detailRow.style.display = 'table-row';
+                    icon.classList.replace('fa-plus', 'fa-minus');
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    detailRow.classList.add('hidden');
+                    detailRow.style.display = 'none';
+                    icon.classList.replace('fa-minus', 'fa-plus');
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
+
+        // --- B. EDIT ASSET ---
+        function editAsset(id, plant, area, machine, comm, plc_hw, plc_sw, plc_ver, hmi_hw, hmi_sw, hmi_ver, drive, ipc, scan) {
+            // Isi form standard
+            document.getElementById('edit_id').value = id;
+            if (document.getElementById('edit_plant')) document.getElementById('edit_plant').value = plant;
+            if (document.getElementById('edit_area')) document.getElementById('edit_area').value = area;
+            if (document.getElementById('edit_machine')) document.getElementById('edit_machine').value = machine;
+            if (document.getElementById('edit_comm')) document.getElementById('edit_comm').value = comm;
+
+            // Isi form PLC & HMI
+            document.getElementById('edit_plc_hw').value = plc_hw;
+            document.getElementById('edit_plc_sw').value = plc_sw;
+            document.getElementById('edit_plc_ver').value = plc_ver;
+            document.getElementById('edit_hmi_hw').value = hmi_hw;
+            document.getElementById('edit_hmi_sw').value = hmi_sw;
+            document.getElementById('edit_hmi_ver').value = hmi_ver;
+
+            // Helper pecah string "HW - SW - Ver" (Pakai safe check)
+            const splitSpec = (str, idx) => (str ? str.split(' - ')[idx] || '' : '');
+
+            // Drive
+            document.getElementById('edit_drive_hw').value = splitSpec(drive, 0);
+            document.getElementById('edit_drive_sw').value = splitSpec(drive, 1);
+            document.getElementById('edit_drive_ver').value = splitSpec(drive, 2);
+
+            // IPC
+            document.getElementById('edit_ipc_hw').value = splitSpec(ipc, 0);
+            document.getElementById('edit_ipc_os').value = splitSpec(ipc, 1);
+            document.getElementById('edit_ipc_apps').value = splitSpec(ipc, 2);
+
+            // Scanner
+            document.getElementById('edit_scan_hw').value = splitSpec(scan, 0);
+            document.getElementById('edit_scan_sw').value = splitSpec(scan, 1);
+            document.getElementById('edit_scan_ver').value = splitSpec(scan, 2);
+
+            openModal('modalEditAsset');
+        }
+
+        // --- C. HAPUS ASSET ---
+        function confirmDeleteAsset(id) {
+            Swal.fire({
+                title: 'Hapus Data Mesin?',
+                text: "Data dan file lampiran akan hilang permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                background: '#1e293b', color: '#fff',
+                confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) window.location.href = 'delete/delete_asset.php?id=' + id;
+            });
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById('tableAssetBody');
+            const pageInfo = document.getElementById('pageInfo');
+            const filteredRows = allRows.filter(row => row.textContent.toLowerCase().includes(currentSearchKeyword));
+            
+            const totalItems = filteredRows.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // 1. Sembunyikan SEMUA baris (Master & Detail)
+            const allTrs = tableBody.querySelectorAll('tr');
+            allTrs.forEach(tr => tr.style.display = 'none');
+
+            // 2. Tampilkan HANYA Master yang lolos filter
+            filteredRows.slice(start, end).forEach(row => {
+                row.style.display = '';
+                // Jangan lupa sembunyikan detail row pasangannya (takutnya tadi terbuka)
+                // const detailRow = document.getElementById('detail-' + row.dataset.id); // Opsional
+            });
+
+            // 3. Update Info Text
+            if(pageInfo) {
+                const startInfo = totalItems === 0 ? 0 : start + 1;
+                const endInfo = Math.min(end, totalItems);
+                pageInfo.innerText = `Showing ${startInfo} - ${endInfo} of ${totalItems} entries`;
+            }
+
+            renderPaginationButtons(totalPages);
+        }
+
+        function renderPaginationButtons(totalPages) {
+            const container = document.getElementById('paginationControls');
+            if (!container) return;
+            container.innerHTML = "";
+            if (totalPages <= 1) return;
+
+            const createBtn = (text, page) => {
+                const btn = document.createElement('button');
+                btn.innerText = text;
+                const isActive = (page === currentPage);
+                btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+                btn.onclick = () => { currentPage = page; renderTable(); };
+                return btn;
+            };
+
+            if (currentPage > 1) container.appendChild(createBtn("Prev", currentPage - 1));
+            
+            // Logic simple: Tampilkan 5 halaman di sekitar current page
+            let startP = Math.max(1, currentPage - 2);
+            let endP = Math.min(totalPages, currentPage + 2);
+            for (let i = startP; i <= endP; i++) {
+                container.appendChild(createBtn(i, i));
+            }
+
+            if (currentPage < totalPages) container.appendChild(createBtn("Next", currentPage + 1));
+        }
+
+        // --- F. FUNGSI DOWNLOAD EXCEL ---
         function downloadExcel() {
             const searchValue = document.getElementById('searchInput').value;
-            // Redirect ke file PHP export dengan membawa parameter search
             window.location.href = 'export/export_excel.php?search=' + encodeURIComponent(searchValue);
         }
     </script>
 
-<button onclick="toggleMobileMenu()" id="mobileMenuBtn" class="fixed bottom-24 right-4 z-[60] md:hidden bg-emerald-600/50 text-white w-12 h-12 rounded-full shadow-lg shadow-emerald-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-1 border-slate-900">
-    <i id="iconOpen" class="fas fa-bars text-lg"></i>
-    <i id="iconClose" class="fas fa-times text-lg hidden"></i>
-</button>
-
-<nav id="mobileNavbar" class="fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl flex justify-around items-center py-3 z-50 md:hidden transition-transform duration-300 ease-in-out translate-y-[150%] shadow-2xl">
-
-    <?php $page = basename($_SERVER['PHP_SELF']); ?>
-
-    <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fa-solid fa-house-chimney text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
-    </a>
-
-    <a href="database.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'database.php' || $page == 'master_items.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-database text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Database</span>
-    </a>
-
-    <a href="laporan.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'laporan.php' || $page == 'my_laporan.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-clipboard-list text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Report</span>
-    </a>
-
-    <a href="project.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'project.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-project-diagram text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
-    </a>
-
-    <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
-    </a>
-
-    <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition group">
-        <i class="fas fa-sign-out-alt text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Logout</span>
-    </a>
-
-</nav>
-<script>
-    function toggleMobileMenu() {
-        const navbar = document.getElementById('mobileNavbar');
-        const iconOpen = document.getElementById('iconOpen');
-        const iconClose = document.getElementById('iconClose');
-        const btn = document.getElementById('mobileMenuBtn');
-
-        // Toggle Class untuk menampilkan/menyembunyikan Navbar
-        // translate-y-[150%] artinya geser ke bawah sejauh 150% dari tingginya (ngumpet)
-        // translate-y-0 artinya kembali ke posisi asal (muncul)
-        if (navbar.classList.contains('translate-y-[150%]')) {
-            // MUNCULKAN MENU
-            navbar.classList.remove('translate-y-[150%]');
-            navbar.classList.add('translate-y-0');
-            
-            // Ubah Icon jadi X
-            iconOpen.classList.add('hidden');
-            iconClose.classList.remove('hidden');
-
-            // Ubah warna tombol jadi merah (biar kelihatan tombol close)
-            btn.classList.remove('bg-emerald-600');
-            btn.classList.add('bg-slate-700');
-        } else {
-            // SEMBUNYIKAN MENU
-            navbar.classList.add('translate-y-[150%]');
-            navbar.classList.remove('translate-y-0');
-            
-            // Ubah Icon jadi Hamburger
-            iconOpen.classList.remove('hidden');
-            iconClose.classList.add('hidden');
-
-            // Balikin warna tombol
-            btn.classList.add('bg-emerald-600');
-            btn.classList.remove('bg-slate-700');
-        }
-    }
-</script>
-</body>
-
+    </body>
 </html>

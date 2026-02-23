@@ -99,3 +99,74 @@ body.light-mode .kpi-card {
     background-color: #ffffff !important;
     border-color: #e2e8f0 !important;
 }
+
+/* 11. MOBILE NAVBAR OVERRIDES */
+/* Mengubah container utama jadi putih transparan (glass) */
+body.light-mode #mobileNavContainer > div {
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+/* Mengubah kotak hijau pelindung menu aktif (Pill) jadi terang */
+body.light-mode #mobileNavContainer .bg-emerald-900\/40 {
+    background-color: #ecfdf5 !important; /* emerald-50 */
+    border-color: #d1fae5 !important; /* emerald-100 */
+}
+
+/* Mengubah tombol toggle (X) saat ditutup (transparan) jadi terang */
+body.light-mode #mobileNavToggle.bg-slate-800\/40 {
+    background-color: rgba(255, 255, 255, 0.6) !important;
+    color: #475569 !important; /* slate-600 */
+    border-color: #cbd5e1 !important; /* slate-300 */
+}
+
+/* =========================================
+   ANIMASI: BLUB / JELLY POP (Untuk Mobile Nav)
+   ========================================= */
+@keyframes blub {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.animate-blub {
+    /* cubic-bezier ini yang bikin efeknya membal kayak karet/jelly */
+    animation: blub 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* =========================================
+   ANIMASI: EXPAND PILL (Background Mekar)
+   ========================================= */
+@keyframes expandPill {
+    0% { 
+        transform: scaleX(0.3) scaleY(0.5); /* Mulai dari kecil dan pipih di tengah */
+        opacity: 0; 
+    }
+    60% { 
+        transform: scaleX(1.05) scaleY(1.05); /* Membal kebesaran sedikit */
+        opacity: 1; 
+    }
+    100% { 
+        transform: scaleX(1) scaleY(1); /* Kembali ke ukuran pas (normal) */
+        opacity: 1; 
+    }
+}
+
+.animate-expand-pill {
+    transform-origin: center; /* Titik awal mekarnya persis dari tengah */
+    animation: expandPill 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* =========================================
+   TURBO DRIVE: Hilangkan Progress Bar
+   ========================================= */
+.turbo-progress-bar {
+    display: none !important;
+}
+
+/* Kustomisasi kecepatan View Transition (Opsional) 
+   Biar transisinya gak kelamaan (kita set 0.3 detik) */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 0.3s;
+}

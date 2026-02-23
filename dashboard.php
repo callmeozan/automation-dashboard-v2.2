@@ -1,339 +1,98 @@
 <?php
-session_start();
-// --- CEK LOGIN (SATPAM) ---
-// Jika session 'user_id' tidak ada, artinya dia belum login.
-if (!isset($_SESSION['user_id'])) {
-    // Tendang balik ke halaman login
-    header("Location: index.php");
-    exit();
-}
+// 1. PANGGIL GLOBAL LOGIC (Satpam, Koneksi, Team List)
+include 'layouts/auth_and_config.php';
 
-include 'config.php';
-// Tambahkan: AND role != 'admin'
-$queryUsers = mysqli_query($conn, "SELECT short_name FROM tb_users WHERE short_name IS NOT NULL AND short_name != '' AND role != 'admin'");
-$teamList = [];
-while ($u = mysqli_fetch_assoc($queryUsers)) {
-    $teamList[] = $u['short_name'];
-}
+// 2. QUERY KHUSUS DASHBOARD (Hanya dashboard yang butuh ini)
+// A. Hitung KPI Cards
+$totalToDo     = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_projects WHERE status = 'To Do'"))['total'];
+$totalProgress = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_projects WHERE status = 'In Progress'"))['total'];
+$totalDone     = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_daily_reports WHERE status = 'Solved'"))['total'];
+$totalAssets   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_assets"))['total'];
 
-// 5. LOGIC NOTIFIKASI DETAILED
-// A. Ambil Data Breakdown (Max 5 terbaru)
-$queryBreakdownList = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE category='Breakdown' AND status='Open' ORDER BY date_log DESC LIMIT 5");
-$countBreakdown = mysqli_num_rows($queryBreakdownList); // Hitung jumlahnya
-
-// B. Ambil Data Project Overdue (Max 5 terparah)
-$today = date('Y-m-d');
-$queryOverdueList = mysqli_query($conn, "SELECT * FROM tb_projects WHERE due_date < '$today' AND status != 'Done' ORDER BY due_date ASC LIMIT 5");
-$countOverdue = mysqli_num_rows($queryOverdueList); // Hitung jumlahnya
-
-// Total Angka Notif (Untuk Badge Merah)
-$totalNotif = $countBreakdown + $countOverdue;
-
-// --- LOGIC KPI CARDS (UPDATED) ---
-// 1. Hitung Project TO DO
-$queryToDo = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_projects WHERE status = 'To Do'");
-$totalToDo = mysqli_fetch_assoc($queryToDo)['total'];
-
-// 2. Hitung Project IN PROGRESS
-$queryProg = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_projects WHERE status = 'In Progress'");
-$totalProgress = mysqli_fetch_assoc($queryProg)['total'];
-
-// 3. Hitung Project DONE
-// (Saya ambil dari tb_projects sesuai konteks status Done, karena tb_daily_project tidak ada di skema kita)
-$queryDone = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_daily_reports WHERE status = 'Solved'");
-$totalDone = mysqli_fetch_assoc($queryDone)['total'];
-
-// 4. Hitung TOTAL ASSETS (Tetap)
-$queryAsset = mysqli_query($conn, "SELECT COUNT(*) as total FROM tb_assets");
-$totalAssets = mysqli_fetch_assoc($queryAsset)['total'];
-
-// --- QUERY UNTUK TAB 2: MY DAILY REPORT ---
-// 1. Ambil ID User dari Session (Pasti ada karena sudah lolos cek login)
-$id_user = $_SESSION['user_id'];
-
-// 2. Cari nama panggilan (short_name) user tersebut di database tb_users
-$qUser = mysqli_query($conn, "SELECT short_name FROM tb_users WHERE user_id='$id_user'");
-$dUser = mysqli_fetch_assoc($qUser);
-
-// 3. Simpan ke variabel $myName
-// (Pakai operator ?? 'User' untuk jaga-jaga kalau datanya kosong/error)
+// B. Ambil Data My Daily Report (Tab 2)
+$dUser = mysqli_fetch_assoc(mysqli_query($conn, "SELECT short_name FROM tb_users WHERE user_id='$id_user'"));
 $myName = $dUser['short_name'] ?? 'User';
-
-// 4. Jalankan Query Laporan dengan Filter Nama User tersebut
 $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic LIKE '%$myName%' ORDER BY date_log DESC, time_start DESC LIMIT 5");
+
+
+// 3. SETTING TAMPILAN LAYOUT (HEADER & HEAD)
+$pageTitle = "Departement Performance";
+
+// Slot Header: Tombol Presentation Mode
+$extraMenu = ''; 
+if ($role_user == 'admin' || $role_user == 'section') {
+    $extraMenu = '
+    <button id="presentationModeBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition shadow-lg shadow-indigo-500/30">
+        <i class="fas fa-tv"></i> <span>Presentation Mode</span>
+    </button>';
+}
+
+// Slot Head: Library Tambahan
+$extraHead = '
+    <link href="assets/vendor/tom-select.css" rel="stylesheet">
+    <script src="assets/vendor/tom-select.complete.min.js"></script>
+    <script defer src="assets/vendor/alpine.js"></script>
+    <style>
+        /* 1. Hilangkan border bawaan wrapper agar tidak ada kotak double */
+        .ts-wrapper { border: none !important; padding: 0 !important; box-shadow: none !important; }
+        
+        /* 2. Styling kotak utama (Control) */
+        .ts-control { 
+            background-color: #020617 !important; /* bg-slate-950 */
+            border: 1px solid #334155 !important; /* border-slate-700 */
+            color: #fff !important; 
+            border-radius: 0.5rem !important; 
+            padding: 8px 12px !important;
+            box-shadow: none !important;
+        }
+
+        /* 3. Efek saat diklik (Focus) */
+        .ts-wrapper.focus .ts-control {
+            border-color: #6366f1 !important; /* indigo-500 */
+            outline: none !important;
+        }
+
+        /* 4. Styling "Pills" / Item yang sudah dipilih */
+        .ts-wrapper.multi .ts-control > div { 
+            background-color: #4f46e5 !important; /* Indigo */
+            color: white !important; 
+            border-radius: 6px !important; 
+            padding: 2px 10px !important;
+            margin: 2px 4px !important;
+        }
+
+        /* Hilangkan garis aneh di tombol hapus */
+        .ts-wrapper.multi .ts-control > div .remove { border: none !important; margin-left: 5px !important; }
+        
+        /* Dropdown menu (Pilihan yang muncul ke bawah) */
+        .ts-dropdown { background-color: #1e293b !important; border: 1px solid #334155 !important; color: #fff !important; margin-top: 5px !important; }
+        .ts-dropdown .active { background-color: #334155 !important; color: #fff !important; }
+    </style>
+';
 ?>
+
+<head>
+    <meta name="turbo-cache-control" content="no-preview">
+</head>
+
 <!DOCTYPE html>
 <html lang="id">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="theme-color" content="#03142c">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Automation Command Center</title>
+<!-- HEAD ADA DISINI -->
+ <?php include 'layouts/head.php'; ?>
 
-    <link rel="icon" href="image/gajah_tunggal.png" type="image/png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/layouts/sidebar.css">
-    <link rel="stylesheet" href="assets/css/layouts/header.css">
-    <link rel="stylesheet" href="assets/css/components/button.css">
-    <link rel="stylesheet" href="assets/css/components/card.css">
-    <link rel="stylesheet" href="assets/css/components/modal.css">
-    <link rel="stylesheet" href="assets/css/main.css">
-    <link href="assets/vendor/tom-select.css" rel="stylesheet">
-    <script src="assets/vendor/tailwind.js"></script>
-    <script src="assets/vendor/sweetalert2.all.min.js"></script>
-    <script src="assets/vendor/tom-select.complete.min.js"></script>
-    <script defer src="assets/vendor/alpine.js"></script>
-    
-
-    <style>
-        /* Tambahkan #modalEditProject di sini */
-        #modalProject:not(.hidden)>div:last-child>div,
-        #modalEditProject:not(.hidden)>div:last-child>div {
-            animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        @keyframes popUp {
-            from {
-                opacity: 0;
-                transform: scale(0.95) translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-    </style>
-
-    <style>
-        /* Custom Style untuk Tom Select di Dark Mode */
-        .ts-control {
-            background-color: #0f172a !important;
-            color: #fff !important;
-            border-radius: 0.5rem;
-        }
-
-        .ts-dropdown {
-            background-color: #1e293b !important;
-            border: 1px solid #334155 !important;
-            color: #fff !important;
-        }
-
-        .ts-dropdown .active {
-            background-color: #334155 !important;
-            color: #fff !important;
-        }
-
-        .ts-control .item {
-            background-color: #4f46e5 !important;
-            color: #fff !important;
-            border-radius: 4px;
-        }
-
-        .ts-wrapper.multi .ts-control>div {
-            background-color: #4f46e5 !important;
-            color: white !important;
-        }
-    </style>
-
-    <style>
-        /* 1. Supaya kursor jadi telunjuk saat hover di icon Kalender & Jam */
-        input[type="date"]::-webkit-calendar-picker-indicator,
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-        }
-
-        /* 2. MODE GELAP*/
-        input[type="date"],
-        input[type="time"] {
-            color-scheme: dark;
-        }
-
-        /* 3. MODE TERANG (Saat ada class 'light-mode') */
-        body.light-mode input[type="date"],
-        body.light-mode input[type="time"] {
-            color-scheme: light;
-        }
-    </style>
-</head>
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
-        <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 hidden md:flex">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800">
-                <h1 class="text-xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
-            </div>
 
-            <!-- SIDEBAR ADA DISINI -->
-            <nav class="flex-1 px-4 py-6 space-y-2">
-                <a href="#" class="nav-item active">
-                    <i class="fas fa-tachometer-alt w-6"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-
-                <div class="relative">
-                    <button onclick="toggleDbMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-database w-6 group-hover:text-emerald-400 transition"></i>
-                            <span class="group-hover:text-white transition">Database</span>
-                        </div>
-                        <i id="arrowDb" class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200"></i>
-                    </button>
-
-                    <div id="dbSubmenu" class="hidden pl-10 space-y-1 mt-1 bg-slate-900/50 py-2 border-l border-slate-800 ml-3">
-                        <a href="database.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Machine / Assets
-                        </a>
-                        <a href="master_items.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Master Items
-                        </a>
-                    </div>
-                </div>
-
-                <a href="laporan.php" class="nav-item">
-                    <i class="fas fa-clipboard-list w-6"></i>
-                    <span>Daily Report</span>
-                </a>
-
-                <a href="project.php" class="nav-item">
-                    <i class="fas fa-project-diagram w-6"></i>
-                    <span>Projects</span>
-                </a>
-
-                <a href="overtime.php" class="nav-item">           
-                    <i class="fas fa-clock w-6"></i>
-                    <span>Overtime</span>
-                </a>
-
-                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                    <a href="javascript:void(0)" onclick="openModal('modalAddUser')" class="nav-item hover:text-emerald-400 transition">
-                        <i class="fa-solid fa-user-plus w-6"></i>
-                        <span>Add User</span>
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
-                    <a href="manage_users.php" class="nav-item">
-                        <i class="fas fa-users-cog w-6"></i> <span class="font-medium">User Management</span>
-                    </a>
-                <?php endif; ?>
-
-                <a href="logout.php" class="nav-item">
-                    <i class="fas fa-solid fa-right-from-bracket w-6"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
-
-            <!-- USER PROFILE ADA DISINI -->
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 border border-slate-500 overflow-hidden flex items-center justify-center">
-                        <img src="image/default_profile.png"
-                            alt="User Profile"
-                            class="w-full h-full object-cover scale-125 transition-transform hover:scale-150">
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-white">
-                            <?php echo isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Guest'; ?>
-                        </p>
-                        <p class="text-xs text-emerald-500">Online</p>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
+        <!-- SIDEBAR ADA DISINI -->
+         <?php include 'layouts/sidebar.php'; ?>
         <main class="flex-1 flex flex-col overflow-y-auto relative pb-24" id="main-content">
 
             <!-- HEADER ADA DISINI -->
-            <header class="h-16 shrink-0 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-10 px-8 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <button id="sidebarToggle" class="text-slate-400 hover:text-white mr-4 transition-transform active:scale-95">
-                    </button>
-                    <h1 class="text-lg font-medium text-white">Department Performance</h1>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                        <button id="presentationModeBtn" class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition shadow-lg shadow-indigo-500/30">
-                            <i class="fas fa-tv"></i> <span>Presentation Mode</span>
-                        </button>
-                    <?php endif; ?>
-
-                    <div class="relative">
-                        <button onclick="toggleNotif()" class="p-2 text-slate-400 hover:text-white relative transition focus:outline-none">
-                            <i class="fas fa-bell"></i>
-                            <?php if ($totalNotif > 0): ?>
-                                <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse"></span>
-                            <?php endif; ?>
-                        </button>
-
-                        <button onclick="toggleTheme()" class="p-2 text-slate-400 hover:text-white transition focus:outline-none mr-2" title="Ganti Tema">
-                            <i id="themeIcon" class="fas fa-sun"></i>
-                        </button>
-
-                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden origin-top-right transform transition-all">
-                            <div class="px-4 py-3 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Notifications</h3>
-                                <span class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded"><?php echo $totalNotif; ?> New</span>
-                            </div>
-
-                            <div class="max-h-80 overflow-y-auto custom-scroll">
-                                <?php if ($totalNotif == 0): ?>
-                                    <div class="px-4 py-6 text-center text-slate-500">
-                                        <i class="fas fa-check-circle text-2xl mb-2 text-emerald-500/50"></i>
-                                        <p class="text-xs">Semua sistem aman.</p>
-                                    </div>
-                                <?php else: ?>
-
-                                    <?php if ($countBreakdown > 0): ?>
-                                        <div class="px-4 py-2 bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Mesin Breakdown (<?php echo $countBreakdown; ?>)
-                                        </div>
-                                        <?php while ($rowBD = mysqli_fetch_assoc($queryBreakdownList)): ?>
-                                            <a href="laporan.php" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-red-500/20 p-1.5 rounded text-red-400 mt-0.5 group-hover:bg-red-500 group-hover:text-white transition"><i class="fas fa-car-crash text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowBD['machine_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400 line-clamp-1"><?php echo $rowBD['problem']; ?></p>
-                                                        <p class="text-[10px] text-red-400 mt-1">Sejak: <?php echo date('d M, H:i', strtotime($rowBD['date_log'] . ' ' . $rowBD['time_start'])); ?></p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-
-                                    <?php if ($countOverdue > 0): ?>
-                                        <div class="px-4 py-2 bg-orange-500/10 text-orange-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-700">
-                                            Project Overdue (<?php echo $countOverdue; ?>)
-                                        </div>
-                                        <?php while ($rowOD = mysqli_fetch_assoc($queryOverdueList)): ?>
-                                            <a href="#table-project" class="block px-4 py-3 hover:bg-slate-700 transition border-b border-slate-700/30 group">
-                                                <div class="flex items-start gap-3">
-                                                    <div class="bg-orange-500/20 p-1.5 rounded text-orange-400 mt-0.5 group-hover:bg-orange-500 group-hover:text-white transition"><i class="far fa-clock text-xs"></i></div>
-                                                    <div>
-                                                        <p class="text-xs font-bold text-white"><?php echo $rowOD['project_name']; ?></p>
-                                                        <p class="text-[10px] text-slate-400">Lead: <?php echo explode(',', $rowOD['team_members'])[0]; ?></p>
-                                                        <?php
-                                                        $due = strtotime($rowOD['due_date']);
-                                                        $now = time();
-                                                        $daysLate = floor(($now - $due) / (60 * 60 * 24));
-                                                        ?>
-                                                        <p class="text-[10px] text-orange-400 mt-1 font-bold">Telat <?php echo $daysLate; ?> hari (<?php echo date('d M', $due); ?>)</p>
-                                                    </div>
-                                                </div>
-                                            </a>
-                                        <?php endwhile; ?>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 space-y-8 fade-in">
+                <!-- PRESENTATION MODE ADA DISNI -->
                 <div id="presentationBanner" class="hidden bg-indigo-900/50 border border-indigo-500/50 text-indigo-200 px-4 py-2 rounded-lg text-center text-sm mb-4">
                     <i class="fas fa-info-circle"></i> Presentation Mode Active.
                 </div>
@@ -439,7 +198,7 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
                 <!-- TABEL DATA SEMUA ADA DISINI -->
                 <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg" x-data="{ activeTab: 'project' }">
 
-                <!-- ACTIVE TAB ADA DISINI -->
+                    <!-- ACTIVE TAB ADA DISINI -->
                     <div class="flex border-b border-slate-700">
                         <button @click="activeTab = 'project'"
                             :class="activeTab === 'project' ? 'text-white border-b-2 border-emerald-500 bg-slate-700/50' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'"
@@ -577,28 +336,19 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
                     </div>
                 </div>
             </div>
-    </div>
+        </div>
     </div>
 
     <!-- FOOTER ADA DISINI -->
-    <div class="mt-auto py-6 px-8 border-t border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-2">
-        <p class="text-[10px] text-slate-600 font-medium tracking-wide">
-            &copy; <?php echo date('Y'); ?> JIS Automation Dept. <span class="hidden md:inline">- Internal Use Only.</span>
-        </p>
-        <p class="text-[10px] text-slate-600 font-medium tracking-wide flex items-center gap-1">
-            Maintained by <span class="text-slate-500 hover:text-emerald-500 transition cursor-default">zaan</span>
-            <i class="fas fa-code text-[8px] opacity-50"></i>
-        </p>
-    </div>
+     <?php include 'layouts/footer.php'; ?>
     </main>
-    </div>
+</div>
 
     <!-- Modal CREATE laporan harian -->
     <div id="modalLaporan" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" id="backdropLaporan"></div>
         <div class="relative flex items-center justify-center min-h-screen p-4">
             <div class="bg-slate-900 border border-slate-700 w-full max-w-3xl rounded-xl shadow-2xl p-6 relative overflow-y-auto max-h-[90vh] custom-scroll">
-
                 <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                     <div>
                         <h3 class="text-xl font-bold text-white flex items-center gap-2">
@@ -872,7 +622,7 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
 
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">Lead Engineer (Team)</label>
-                        <select name="team[]" id="create_team" multiple placeholder="Pilih Tim..." autocomplete="off" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                        <select name="team[]" id="create_team" multiple placeholder="Pilih Tim..." autocomplete="off" class="w-full">
                             <option value="">-- Pilih --</option>
                             <?php
                             // Pastikan $teamList sudah didefinisikan di bagian atas file PHP
@@ -950,198 +700,80 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
         </div>
     </div>
 
-    <!-- SELURUH SCRIPT YANG DIBUTUHKAN DI HALAMAN DASHBOARD -->
-    <script>
-        // --- LOGIC MEMBUKA MODAL DARI URL (Untuk Add User) ---
-        const urlParamsModal = new URLSearchParams(window.location.search);
-        if (urlParamsModal.get('open_modal') === 'adduser') {
-            // Tunggu sebentar biar halaman loading sempurna
-            setTimeout(() => {
-                if (typeof openModal === 'function') {
-                    openModal('modalAddUser');
-                }
-                // Bersihkan URL biar pas refresh gak muncul lagi
-                const newUrl = window.location.pathname;
-                window.history.replaceState(null, null, newUrl);
-            }, 100);
-        }
-        // 1. FUNGSI ISI DATA KE MODAL EDIT
-        function editProject(id, name, desc, date, cat, team, act, plant, status) {
+    <!-- MOBILE NAV ADA DISINI -->
+    <?php include 'layouts/mobile_nav.php'; ?>
 
-            document.getElementById('edit_id').value = id;
-            document.getElementById('edit_name').value = name;
-            document.getElementById('edit_desc').value = desc;
-            document.getElementById('edit_date').value = date;
+    <!-- SCRIPTS GLOBAL ADA DISINI -->
+     <?php include 'layouts/scripts.php'; ?>
 
-            // Isi Status (To Do / In Progress / Done)
-            if (document.getElementById('edit_status')) {
-                document.getElementById('edit_status').value = status;
-            }
+     <!-- SCRIPT DASHBOARD ADA DISINI -->
+     <script>
+window.rowsPerPage = window.rowsPerPage || 10;
+window.currentPage = window.currentPage || 1;
+window.currentSearchKeyword = window.currentSearchKeyword || "";
+window.allRows = window.allRows || [];
 
-            document.getElementById('edit_team').value = team;
-            document.getElementById('edit_act').value = act;
-            document.getElementById('edit_plant').value = plant;
+        // document.addEventListener('DOMContentLoaded', function() {
+        // document.addEventListener('turbo:load', function() {
+        (function() {
+            if (document.documentElement.hasAttribute("data-turbo-preview")) return;
+            if (!window.location.pathname.includes('dashboard.php')) return;
+            console.log("Dashboard Logic Started!");
 
-            openModal('modalEditProject');
-        }
+            const urlParams = new URLSearchParams(window.location.search);
 
-        // 2. FUNGSI KONFIRMASI HAPUS
-        function confirmDelete(id) {
-            Swal.fire({
-                title: 'Hapus Project?',
-                text: "Data tidak bisa dikembalikan!",
-                icon: 'warning',
-                showCancelButton: true,
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Hapus!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'delete/delete_project.php?id=' + id + '&redirect=project.php';
-                }
-            })
-        }
-
-        // 3. MASTER NOTIFIKASI (Create, Update, Delete)
-        const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get('status');
-        const msg = urlParams.get('msg');
-
-        if (status === 'success') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: msg || 'Data berhasil disimpan.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669',
-                iconColor: '#34d399'
-            }).then(() => cleanUrl());
-        } else if (status === 'updated') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil Diupdate!',
-                text: msg || 'Data telah diperbarui.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669',
-                iconColor: '#34d399'
-            }).then(() => cleanUrl());
-        } else if (status === 'deleted') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Terhapus!',
-                text: msg || 'Data telah dihapus.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#059669',
-                iconColor: '#34d399'
-            }).then(() => cleanUrl());
-        } else if (status === 'error') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: msg || 'Terjadi kesalahan sistem.',
-                background: '#1e293b',
-                color: '#fff',
-                confirmButtonColor: '#ef4444'
-            }).then(() => cleanUrl());
-        }
-
-        // Fungsi Bersihkan URL (Agar pas refresh notifikasi gak muncul lagi)
-        function cleanUrl() {
-            window.history.replaceState(null, null, window.location.pathname);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // KONFIGURASI
-            const rowsPerPage = 10; // Mau tampil berapa baris?
-
-            // SELEKTOR
-            const tableBody = document.querySelector('tbody'); // Pastikan ini mengarah ke tbody tabel project
-            const allRows = Array.from(tableBody.querySelectorAll('tr')); // Ambil semua data asli
+            const tableBody = document.querySelector('#projectTableBody'); 
             const searchInput = document.getElementById('searchInput');
-            const pageInfo = document.getElementById('pageInfo');
-            const paginationControls = document.getElementById('paginationControls');
 
-            let currentPage = 1;
-            let currentSearchKeyword = "";
+            // 1. Tangkap parameter dari URL
+            // const urlParams = new URLSearchParams(window.location.search);
+            const modalToOpen = urlParams.get('open_modal');
 
-            // FUNGSI UTAMA: RENDER ULANG TABEL
-            function renderTable() {
-                // 1. Filter Data dulu (Sesuai Search Bapak)
-                const filteredRows = allRows.filter(row => {
-                    const text = row.textContent.toLowerCase();
-                    return text.includes(currentSearchKeyword);
-                });
-
-                // 2. Hitung Pagination
-                const totalItems = filteredRows.length;
-                const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-                // Pastikan halaman tidak nyasar (misal lagi di page 5, terus search hasilnya cuma 2 data, harus balik ke page 1)
-                if (currentPage > totalPages) currentPage = 1;
-                if (currentPage < 1) currentPage = 1;
-
-                // 3. Hitung Index Potong (Slice)
-                const start = (currentPage - 1) * rowsPerPage;
-                const end = start + rowsPerPage;
-
-                // 4. Manipulasi Tampilan (Hide All -> Show Slice)
-                allRows.forEach(row => row.style.display = 'none'); // Sembunyikan SEMUA data asli
-
-                // Tampilkan hanya yang lolos filter DAN masuk range halaman
-                filteredRows.slice(start, end).forEach(row => {
-                    row.style.display = '';
-                });
-
-                // 5. Update Info Teks
-                const startInfo = totalItems === 0 ? 0 : start + 1;
-                const endInfo = Math.min(end, totalItems);
-                pageInfo.innerText = `Showing ${startInfo} - ${endInfo} of ${totalItems} entries`;
-
-                // 6. Bikin Tombol
-                renderButtons(totalPages);
-            }
-
-            // FUNGSI BIKIN TOMBOL (Prev 1 2 3 Next)
-            function renderButtons(totalPages) {
-                paginationControls.innerHTML = ""; // Reset tombol
-
-                // Jangan tampilkan tombol kalau cuma 1 halaman
-                if (totalPages <= 1) return;
-
-                // Helper buat bikin tombol
-                const createBtn = (text, page, isActive = false, isDisabled = false) => {
-                    const btn = document.createElement('button');
-                    btn.innerText = text;
-                    btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-                    if (isDisabled) {
-                        btn.classList.add('opacity-50', 'cursor-not-allowed');
-                        btn.disabled = true;
-                    }
-                    btn.addEventListener('click', () => {
-                        currentPage = page;
-                        renderTable();
-                    });
-                    return btn;
+            // Fungsi pembantu agar tidak menulis ulang kode yang sama
+                const setupTomSelect = (id, isMulti = false, placeholder = "Pilih...") => {
+                    const el = document.getElementById(id);
+                    if (!el || el.tomselect) return;
+                        new TomSelect(`#${id}`, {
+                            plugins: isMulti ? ['remove_button'] : [],
+                            create: false,
+                            placeholder: placeholder,
+                            maxItems: isMulti ? 10 : 1 // Batasi 10 untuk tim, 1 untuk lead
+                        });
                 };
 
-                // Tombol PREV
-                paginationControls.appendChild(createBtn("Prev", currentPage - 1, false, currentPage === 1));
+                // 1. Inisialisasi PIC (Modal Report) - Multiple
+                setupTomSelect('create_pic_dashboard', true, "Pilih Personil...");
 
-                // Tombol Angka (1, 2, 3...)
-                for (let i = 1; i <= totalPages; i++) {
-                    paginationControls.appendChild(createBtn(i, i, i === currentPage));
+                // 2. Inisialisasi Lead Engineer (Modal Project) - Single
+                setupTomSelect('create_lead_engineer_dashboard', false, "Pilih Lead Engineer...");
+
+                // 3. Inisialisasi Team (Modal Project) - Multiple
+                setupTomSelect('create_team', true, "Pilih Anggota Tim...");
+
+            // 2. Jika parameternya adalah 'adduser', maka buka modalnya
+            if (modalToOpen === 'adduser') {
+                // Pastikan fungsi openModal sudah ada (dari layouts/scripts.php)
+                if (typeof openModal === "function") {
+                    openModal('modalAddUser');
+                } else {
+                    // Jika script global belum termuat, kita buka manual lewat class
+                    const modal = document.getElementById('modalAddUser');
+                    if (modal) modal.classList.remove('hidden');
                 }
-
-                // Tombol NEXT
-                paginationControls.appendChild(createBtn("Next", currentPage + 1, false, currentPage === totalPages));
+                
+                // 3. (Opsional) Bersihkan URL agar saat di-refresh modal tidak muncul terus
+                window.history.replaceState(null, null, window.location.pathname);
             }
 
-            // LISTENER: SAAT KETIK SEARCH
+            if (tableBody) {
+                // Simpan semua baris asli saat pertama kali load
+                allRows = Array.from(tableBody.querySelectorAll('tr.project-row'));
+                
+                // Jalankan render pertama kali
+                renderTable();
+            }
+
+            // --- FUNGSI SEARCH (LIVESEARCH) ---
             if (searchInput) {
                 searchInput.addEventListener('keyup', function() {
                     currentSearchKeyword = this.value.toLowerCase();
@@ -1149,218 +781,112 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
                     renderTable();
                 });
             }
+        })();
 
-            // Jalankan pertama kali
-            renderTable();
-        });
+        // FUNGSI UTAMA: RENDER ULANG TABEL
+        function renderTable() {
+            const tableBody = document.querySelector('#projectTableBody');
+            const pageInfo = document.getElementById('pageInfo');
+            const paginationControls = document.getElementById('paginationControls');
 
-        // --- FUNGSI TOGGLE NOTIFIKASI ---
-        function toggleNotif() {
-            const dropdown = document.getElementById('notifDropdown');
-            if (dropdown.classList.contains('hidden')) {
-                dropdown.classList.remove('hidden');
-            } else {
-                dropdown.classList.add('hidden');
+            if (!tableBody) return;
+
+            // 1. Filter Data berdasarkan keyword search
+            const filteredRows = allRows.filter(row => {
+                return row.textContent.toLowerCase().includes(currentSearchKeyword);
+            });
+
+            // 2. Hitung Pagination
+            const totalItems = filteredRows.length;
+            const totalPages = Math.ceil(totalItems / rowsPerPage);
+
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+
+            // 3. Tentukan Baris mana yang tampil (Slice)
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+
+            // 4. Sembunyikan semua, lalu munculkan yang lolos filter & masuk halaman
+            allRows.forEach(row => row.style.display = 'none');
+            
+            filteredRows.slice(start, end).forEach(row => {
+                row.style.display = '';
+            });
+
+            // 5. Update Info "Showing X of Y entries"
+            if (pageInfo) {
+                const startInfo = totalItems === 0 ? 0 : start + 1;
+                const endInfo = Math.min(end, totalItems);
+                pageInfo.innerText = `Showing ${startInfo} - ${endInfo} of ${totalItems} entries`;
             }
+
+            // 6. Gambar ulang tombol angka (1, 2, 3...)
+            renderPaginationButtons(totalPages);
         }
 
-        // Tutup dropdown kalau klik di luar area
-        window.addEventListener('click', function(e) {
-            const btn = document.querySelector('button[onclick="toggleNotif()"]');
-            const dropdown = document.getElementById('notifDropdown');
+        function renderPaginationButtons(totalPages) {
+            const container = document.getElementById('paginationControls');
+            if (!container) return;
+            container.innerHTML = "";
 
-            // Jika yang diklik BUKAN tombol lonceng DAN BUKAN dropdown itu sendiri
-            if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
-                dropdown.classList.add('hidden');
-            }
-        });
+            if (totalPages <= 1) return;
 
-        // --- INISIALISASI TOM SELECT (MULTI SELECT) ---
-        let tomSelectCreate;
-        let tomSelectEdit;
-        let tomSelectPicDashboard; // Variabel baru untuk PIC
+            // Helper Button
+            const createBtn = (text, page, isAction = false) => {
+                const btn = document.createElement('button');
+                btn.innerText = text;
+                const isActive = (page === currentPage && !isAction);
+                btn.className = `px-3 py-1 rounded transition text-xs ${isActive ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+                
+                btn.onclick = () => {
+                    currentPage = page;
+                    renderTable();
+                };
+                return btn;
+            };
 
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // 1. Aktifkan di Modal Create Project
-            if (document.getElementById('create_team')) {
-                tomSelectCreate = new TomSelect("#create_team", {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: 5
-                });
-            }
-
-            // 2. Aktifkan di Modal Edit Project
-            if (document.getElementById('edit_team')) {
-                tomSelectEdit = new TomSelect("#edit_team", {
-                    plugins: ['remove_button'],
-                    create: false,
-                    maxItems: 5
-                });
+            // Prev
+            if (currentPage > 1) container.appendChild(createBtn("Prev", currentPage - 1, true));
+            
+            // Angka
+            for (let i = 1; i <= totalPages; i++) {
+                container.appendChild(createBtn(i, i));
             }
 
-            // 3. AKTIFKAN DI MODAL LAPORAN DASHBOARD (INI YANG KURANG)
-            if (document.getElementById('create_pic_dashboard')) {
-                tomSelectPicDashboard = new TomSelect("#create_pic_dashboard", {
-                    plugins: ['remove_button'],
-                    create: false, // Tidak boleh nambah nama baru manual
-                    maxItems: 5,
-                    placeholder: "Pilih PIC..."
-                });
-            }
+            // Next
+            if (currentPage < totalPages) container.appendChild(createBtn("Next", currentPage + 1, true));
+        }
 
-        });
-
-        // --- UPDATE FUNGSI EDIT PROJECT (PENTING!) ---
-        // Kita harus memecah string "Budi, Andi" menjadi pilihan terseleksi
+        // --- 2. FUNGSI EDIT & DELETE (TETAP DISINI) ---
         function editProject(id, name, desc, date, cat, team, act, plant, status) {
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_name').value = name;
             document.getElementById('edit_desc').value = desc;
             document.getElementById('edit_date').value = date;
-
             if (document.getElementById('edit_status')) document.getElementById('edit_status').value = status;
-            if (document.getElementById('edit_cat')) document.getElementById('edit_cat').value = cat;
-            document.getElementById('edit_act').value = act;
-            document.getElementById('edit_plant').value = plant;
-
-            // LOGIC MULTI SELECT (Load Data Lama)
-            if (tomSelectEdit) {
-                tomSelectEdit.clear(); // Bersihkan dulu
+            
+            if (typeof tomSelectEdit !== 'undefined' && tomSelectEdit) {
+                tomSelectEdit.clear();
                 if (team) {
-                    // Pecah string "Budi, Andi" jadi array ["Budi", "Andi"]
-                    const members = team.split(',').map(item => item.trim());
-                    members.forEach(member => {
-                        tomSelectEdit.addItem(member); // Pilih satu per satu
-                    });
+                    team.split(',').map(t => t.trim()).forEach(m => tomSelectEdit.addItem(m));
                 }
             }
-
             openModal('modalEditProject');
         }
 
-        // --- TAMBAHAN LOGIC UPLOAD 5 GAMBAR (Sama seperti di laporan.php) ---
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('file_evidence');
-            const fileNameDisplay = document.getElementById('file-name-display');
-
-            if (fileInput && fileNameDisplay) {
-                fileInput.addEventListener('change', function(e) {
-                    const files = this.files;
-
-                    // 1. Validasi Maksimal 5 File
-                    if (files.length > 5) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Terlalu Banyak!',
-                            text: 'Maksimal hanya boleh upload 5 gambar sekaligus.',
-                            confirmButtonColor: '#f59e0b',
-                            background: '#1e293b',
-                            color: '#fff'
-                        });
-                        this.value = ''; // Reset
-                        fileNameDisplay.classList.add('hidden');
-                        return;
-                    }
-
-                    // 2. Tampilkan Info Nama File
-                    if (files.length > 0) {
-                        fileNameDisplay.classList.remove('hidden');
-                        if (files.length === 1) {
-                            fileNameDisplay.textContent = `📄 ${files[0].name}`;
-                        } else {
-                            fileNameDisplay.textContent = `📂 ${files.length} file dipilih`;
-                        }
-                    } else {
-                        fileNameDisplay.classList.add('hidden');
-                    }
-                });
-            }
-        });
+        function confirmDelete(id) {
+            Swal.fire({
+                title: 'Hapus Project?',
+                text: "Data tidak bisa dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                background: '#1e293b', color: '#fff',
+                confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hapus!'
+            }).then((result) => {
+                if (result.isConfirmed) window.location.href = 'delete/delete_project.php?id=' + id + '&redirect=dashboard.php';
+            });
+        }
     </script>
 
-    <script src="assets/js/ui-sidebar.js"></script>
-    <script src="assets/js/ui-modal.js"></script>
-
-<button onclick="toggleMobileMenu()" id="mobileMenuBtn" class="fixed bottom-24 right-4 z-[60] md:hidden bg-emerald-600/50 text-white w-12 h-12 rounded-full shadow-lg shadow-emerald-900/50 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border-1 border-slate-900">
-    <i id="iconOpen" class="fas fa-bars text-lg"></i>
-    <i id="iconClose" class="fas fa-times text-lg hidden"></i>
-</button>
-
-<nav id="mobileNavbar" class="fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl flex justify-around items-center py-3 z-50 md:hidden transition-transform duration-300 ease-in-out translate-y-[150%] shadow-2xl">
-
-    <?php $page = basename($_SERVER['PHP_SELF']); ?>
-
-    <a href="dashboard.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'dashboard.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fa-solid fa-house-chimney text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Home</span>
-    </a>
-
-    <a href="database.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'database.php' || $page == 'master_items.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-database text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Database</span>
-    </a>
-
-    <a href="laporan.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'laporan.php' || $page == 'my_laporan.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-clipboard-list text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Report</span>
-    </a>
-
-    <a href="project.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'project.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-project-diagram text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Projects</span>
-    </a>
-
-    <a href="overtime.php" class="flex flex-col items-center gap-1 w-1/5 transition group <?php echo ($page == 'overtime.php') ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-300'; ?>">
-        <i class="fas fa-clock text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Overtime</span>
-    </a>
-
-    <a href="logout.php" class="flex flex-col items-center gap-1 w-1/5 text-slate-500 hover:text-red-400 transition group">
-        <i class="fas fa-sign-out-alt text-lg mb-0.5 group-active:scale-90 transition"></i>
-        <span class="text-[9px] font-medium uppercase tracking-wide">Logout</span>
-    </a>
-
-</nav>
-
-<script>
-    function toggleMobileMenu() {
-        const navbar = document.getElementById('mobileNavbar');
-        const iconOpen = document.getElementById('iconOpen');
-        const iconClose = document.getElementById('iconClose');
-        const btn = document.getElementById('mobileMenuBtn');
-
-        // Toggle Class untuk menampilkan/menyembunyikan Navbar
-        // translate-y-[150%] artinya geser ke bawah sejauh 150% dari tingginya (ngumpet)
-        // translate-y-0 artinya kembali ke posisi asal (muncul)
-        if (navbar.classList.contains('translate-y-[150%]')) {
-            // MUNCULKAN MENU
-            navbar.classList.remove('translate-y-[150%]');
-            navbar.classList.add('translate-y-0');
-            
-            // Ubah Icon jadi X
-            iconOpen.classList.add('hidden');
-            iconClose.classList.remove('hidden');
-
-            // Ubah warna tombol jadi merah (biar kelihatan tombol close)
-            btn.classList.remove('bg-emerald-600');
-            btn.classList.add('bg-slate-700');
-        } else {
-            // SEMBUNYIKAN MENU
-            navbar.classList.add('translate-y-[150%]');
-            navbar.classList.remove('translate-y-0');
-            
-            // Ubah Icon jadi Hamburger
-            iconOpen.classList.remove('hidden');
-            iconClose.classList.add('hidden');
-
-            // Balikin warna tombol
-            btn.classList.add('bg-emerald-600');
-            btn.classList.remove('bg-slate-700');
-        }
-    }
-</script>
-</body>
-
+    </body>
 </html>

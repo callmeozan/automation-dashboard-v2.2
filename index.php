@@ -130,7 +130,7 @@ if (isset($_SESSION['user_id'])) {
         <!-- FOOTER FORM LOGIN -->
         <div class="mt-6 text-center">
             <p class="text-xs text-slate-600">
-                &copy; 2025 JIS Automation Dept. Internal Use Only.
+                &copy; <?php echo date('Y'); ?> JIS Automation Dept. Internal Use Only.
             </p>
         </div>
     </div>

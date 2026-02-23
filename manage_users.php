@@ -1,204 +1,69 @@
 <?php
-session_start();
-// --- PROTEKSI HALAMAN (HANYA ADMIN) ---
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+// 1. Panggil Satpam & Koneksi Global
+include 'layouts/auth_and_config.php';
+
+// 2. PROTEKSI HALAMAN (HANYA ADMIN)
+if ($role_user != 'admin') {
     header("Location: dashboard.php");
     exit();
 }
-include 'config.php';
 
-// Notifikasi dari URL (untuk SweetAlert)
-$status = isset($_GET['status']) ? $_GET['status'] : '';
-$msg = isset($_GET['msg']) ? $_GET['msg'] : '';
+// 3. KONFIGURASI LAYOUT
+$pageTitle = "System User Management";
 
-// Fungsi mengubah tanggal jadi "Sekian waktu yang lalu"
+// [SLOT HEADER] Tombol Tambah User
+$extraMenu = '
+    <button onclick="openModal(\'modalAddUser\')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+        <i class="fas fa-plus"></i> <span class="hidden sm:inline">Tambah User</span>
+    </button>';
+
+// [SLOT HEAD] CSS Khusus Halaman Ini
+$extraHead = '
+    <style>
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+';
+
+// 4. FUNGSI HELPER (Time Ago)
 function timeAgo($datetime, $full = false) {
     $now = new DateTime;
     $ago = new DateTime($datetime);
     $diff = $now->diff($ago);
-
-    // Hitung minggu secara manual agar tidak error di PHP 8.2
-    // Kita pisahkan sisa hari menjadi minggu dan hari
     $weeks = floor($diff->d / 7);
     $days = $diff->d - ($weeks * 7);
-
-    // Kita masukkan ke array biasa (bukan ke object diff)
-    $timeData = [
-        'y' => $diff->y,
-        'm' => $diff->m,
-        'w' => $weeks,
-        'd' => $days,
-        'h' => $diff->h,
-        'i' => $diff->i,
-        's' => $diff->s,
-    ];
-
-    $labels = [
-        'y' => 'tahun',
-        'm' => 'bulan',
-        'w' => 'minggu',
-        'd' => 'hari',
-        'h' => 'jam',
-        'i' => 'menit',
-        's' => 'detik',
-    ];
-
+    $timeData = ['y' => $diff->y, 'm' => $diff->m, 'w' => $weeks, 'd' => $days, 'h' => $diff->h, 'i' => $diff->i, 's' => $diff->s];
+    $labels = ['y' => 'tahun', 'm' => 'bulan', 'w' => 'minggu', 'd' => 'hari', 'h' => 'jam', 'i' => 'menit', 's' => 'detik'];
     $string = [];
-    foreach ($labels as $k => $label) {
-        if ($timeData[$k]) {
-            $string[] = $timeData[$k] . ' ' . $label;
-        }
-    }
-
+    foreach ($labels as $k => $label) { if ($timeData[$k]) { $string[] = $timeData[$k] . ' ' . $label; } }
     if (!$full) $string = array_slice($string, 0, 1);
     return $string ? implode(', ', $string) . ' yg lalu' : 'Baru saja';
 }
 ?>
+
+<head>
+    <meta name="turbo-cache-control" content="no-preview">
+</head>
+
 <!DOCTYPE html>
 <html lang="id">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="theme-color" content="#03142c">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen User - Admin Panel</title>
-
-    <link rel="icon" href="image/gajah_tunggal.png" type="image/png">
-    <link rel="stylesheet" href="assets/css/layouts/sidebar.css">
-    <link rel="stylesheet" href="assets/css/layouts/header.css">
-    <link rel="stylesheet" href="assets/css/components/button.css">
-    <link rel="stylesheet" href="assets/css/components/card.css">
-    <link rel="stylesheet" href="assets/css/components/modal.css">
-    <link rel="stylesheet" href="assets/css/main.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="assets/vendor/tailwind.js"></script>
-    <script src="assets/vendor/sweetalert2.all.min.js"></script>
-
-    <style>
-        .custom-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .custom-scroll::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 10px;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
-</head>
+<!-- HEAD ADA DISINI -->
+<?php include 'layouts/head.php'; ?>
 
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
 
     <div class="flex h-screen overflow-hidden">
 
-        <aside id="sidebar" class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col transition-all duration-300 hidden md:flex">
-            <div class="h-16 flex items-center justify-center border-b border-slate-800">
-                <h1 class="text-xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
-            </div>
-
-            <nav class="flex-1 px-4 py-6 space-y-2">
-                <a href="dashboard.php" class="nav-item">
-                    <i class="fas fa-tachometer-alt w-6"></i>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-
-                <div class="relative">
-                    <button onclick="toggleDbMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group">
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-database w-6 group-hover:text-emerald-400 transition"></i>
-                            <span class="group-hover:text-white transition">Database</span>
-                        </div>
-                        <i id="arrowDb" class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200"></i>
-                    </button>
-
-                    <div id="dbSubmenu" class="hidden pl-10 space-y-1 mt-1 bg-slate-900/50 py-2 border-l border-slate-800 ml-3">
-                        <a href="database.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Machine / Assets
-                        </a>
-                        <a href="master_items.php" class="block text-sm text-slate-400 hover:text-emerald-400 transition py-1">
-                            • Master Items
-                        </a>
-                    </div>
-                </div>
-
-                <a href="laporan.php" class="nav-item">
-                    <i class="fas fa-clipboard-list w-6"></i>
-                    <span>Daily Report</span>
-                </a>
-
-                <a href="project.php" class="nav-item">
-                    <i class="fas fa-project-diagram w-6"></i>
-                    <span>Projects</span>
-                </a>
-
-                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                    <a href="javascript:void(0)" onclick="openModal('modalAddUser')" class="nav-item hover:text-emerald-400 transition">
-                        <i class="fa-solid fa-user-plus w-6"></i>
-                        <span>Add User</span>
-                    </a>
-                <?php endif; ?>
-
-                <?php if ($_SESSION['role'] == 'admin'): ?>
-                    <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
-                        <a href="manage_users.php" class="nav-item active">
-                        <i class="fas fa-users-cog w-6"></i> <span class="font-medium">User Management</span>
-                    </a>
-                <?php endif; ?>
-
-                <a href="logout.php" class="nav-item">
-                    <i class="fas fa-solid fa-right-from-bracket w-6"></i>
-                    <span>Logout</span>
-                </a>
-            </nav>
-
-            <div class="p-4 border-t border-slate-800">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-700 border border-slate-500 overflow-hidden flex items-center justify-center">
-                        <img src="image/default_profile.png"
-                            alt="User Profile"
-                            class="w-full h-full object-cover scale-125 transition-transform hover:scale-150">
-                    </div>
-                    <div>
-                        <p class="text-sm font-semibold text-white">
-                            <?php echo isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Guest'; ?>
-                        </p>
-                        <p class="text-xs text-emerald-500">Online</p>
-                    </div>
-                </div>
-            </div>
-
-        </aside>
+        <!-- SIDEBAR ADA DISINI -->
+         <?php include 'layouts/sidebar.php'; ?>
 
         <main class="flex-1 flex flex-col overflow-y-auto relative pb-24" id="main-content">
-            <header class="h-16 shrink-0 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-10 px-8 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <button id="sidebarToggle" class="text-slate-400 hover:text-white mr-4 transition-transform active:scale-95">
-                    </button>
-                    <h1 class="text-lg font-medium text-white">System User Management</h1>
-                </div>
-                <button onclick="openModal('modalAddUser')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Tambah User
-                </button>
-            </header>
+            
+        <!-- HEADER ADA DISINI -->
+            <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 fade-in">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -447,26 +312,21 @@ function timeAgo($datetime, $full = false) {
         </div>
     </div>
 
+    <?php include 'layouts/mobile_nav.php'; ?>
+    <?php include 'layouts/scripts.php'; ?>
+
     <script>
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        // FUNGSI ISI MODAL EDIT
+        // 1. FUNGSI EDIT USER (Khusus Manajemen User)
         function editUser(id, username, fullname, shortname, role) {
             document.getElementById('edit_user_id').value = id;
             document.getElementById('edit_username').value = username;
             document.getElementById('edit_fullname').value = fullname;
             document.getElementById('edit_shortname').value = shortname;
             document.getElementById('edit_role').value = role;
-            openModal('modalEditUser');
+            openModal('modalEditUser'); // Memanggil fungsi global
         }
 
-        // FUNGSI KONFIRMASI DELETE
+        // 2. KONFIRMASI HAPUS (Khusus Manajemen User)
         function deleteUser(id, name) {
             Swal.fire({
                 title: 'Hapus User?',
@@ -485,7 +345,7 @@ function timeAgo($datetime, $full = false) {
             })
         }
 
-        // FUNGSI RESET PASSWORD
+        // 3. RESET PASSWORD (Khusus Manajemen User)
         function resetPassword(id, name) {
             Swal.fire({
                 title: 'Reset Password?',
@@ -504,39 +364,22 @@ function timeAgo($datetime, $full = false) {
             })
         }
 
-        // HANDLING NOTIFIKASI DARI URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get('status');
-        const msg = urlParams.get('msg');
-
-        if (status) {
-            let title = 'Berhasil!';
-            let icon = 'success';
-
-            if (status === 'error') {
-                title = 'Gagal!';
-                icon = 'error';
-            }
-            if (status === 'deleted') {
-                title = 'Terhapus!';
-            }
-
+        // 4. NOTIFIKASI KHUSUS (Optional: Jika ingin teks pesan berbeda dari standar)
+        var urlParams = new URLSearchParams(window.location.search);
+        var status = urlParams.get('status');
+        if (status === 'deleted') {
             Swal.fire({
-                icon: icon,
-                title: title,
-                text: msg || 'Proses berhasil.',
+                icon: 'success',
+                title: 'Terhapus!',
+                text: 'User telah berhasil dihapus dari sistem.',
                 background: '#1e293b',
                 color: '#fff',
                 confirmButtonColor: '#059669'
             }).then(() => {
-                // Bersihkan URL biar bersih
                 window.history.replaceState(null, null, window.location.pathname);
             });
         }
     </script>
-        <script src="assets/js/ui-sidebar.js"></script>
-    <script src="assets/js/ui-modal.js"></script>
 
 </body>
-
 </html>
