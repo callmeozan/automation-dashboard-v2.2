@@ -302,7 +302,8 @@ $extraHead = '
                                             <tr class="hover:bg-slate-800/50 transition border-b border-slate-800" data-date="<?php echo $row['date_log']; ?>">
                                         <!-- <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500" data-date="<?php echo $row['date_log']; ?>"> -->
                                             <td class="px-6 py-4 text-center">
-                                                <button onclick="toggleDetail('lap<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">
+                                                <!-- <button onclick="toggleDetail('lap<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none"> -->
+                                                <button data-toggle-id="lap<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
                                                     <i class="fas fa-plus text-xs transition-transform" id="icon-lap<?php echo $id; ?>"></i>
                                                 </button>
                                             </td>
@@ -855,24 +856,24 @@ $extraHead = '
         }
 
         // --- FUNGSI TOGGLE DETAIL ROW ---
-        function toggleDetail(rowId) {
-            const detailRow = document.getElementById('detail-' + rowId);
-            const icon = document.getElementById('icon-' + rowId);
-            if (detailRow && icon) {
-                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-                if (isHidden) {
-                    detailRow.classList.remove('hidden');
-                    detailRow.style.display = 'table-row';
-                    icon.classList.replace('fa-plus', 'fa-minus');
-                    icon.style.transform = 'rotate(180deg)';
-                } else {
-                    detailRow.classList.add('hidden');
-                    detailRow.style.display = 'none';
-                    icon.classList.replace('fa-minus', 'fa-plus');
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
+        // window.toggleDetail = function(rowId) {
+        //     const detailRow = document.getElementById('detail-' + rowId);
+        //     const icon = document.getElementById('icon-' + rowId);
+        //     if (detailRow && icon) {
+        //         const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+        //         if (isHidden) {
+        //             detailRow.classList.remove('hidden');
+        //             detailRow.style.display = 'table-row';
+        //             icon.classList.replace('fa-plus', 'fa-minus');
+        //             icon.style.transform = 'rotate(180deg)';
+        //         } else {
+        //             detailRow.classList.add('hidden');
+        //             detailRow.style.display = 'none';
+        //             icon.classList.replace('fa-minus', 'fa-plus');
+        //             icon.style.transform = 'rotate(0deg)';
+        //         }
+        //     }
+        // };
 
         // --- FUNGSI DOWNLOAD EXCEL ---
         function downloadExcel() {

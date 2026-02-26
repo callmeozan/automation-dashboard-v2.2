@@ -17,6 +17,7 @@
     
     <script src="assets/vendor/tailwind.js"></script>
     <script src="assets/vendor/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <?php if (isset($extraHead)) echo $extraHead; ?>
 

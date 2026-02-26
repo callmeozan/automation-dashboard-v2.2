@@ -101,32 +101,6 @@ $extraHead = '
         <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 fade-in">
-                <!-- <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
-                    <div>
-                        <h3 class="text-2xl font-bold text-white">Overtime Log</h3>
-                        <p class="text-sm text-slate-400 mt-1">Recapitulation of overtime hours based on SPK.</p>
-                    </div>
-
-                    <div class="flex gap-2">
-                            <div class="relative group">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 group-focus-within:text-emerald-500 transition">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" id="searchInput" placeholder="Search Name, SPK, Activity..." 
-                                    class="pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 text-white rounded-lg text-sm focus:border-emerald-500 outline-none w-full md:w-64 transition shadow-sm">
-                            </div>
-
-                        <button onclick="downloadExcelOvertime()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-lg border border-slate-700 text-sm transition flex items-center gap-2">
-                            <i class="fas fa-file-excel text-green-500"></i> Export Excel
-                        </button>
-
-                        <button onclick="document.getElementById('modalOvertime').classList.remove('hidden')" 
-                                class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
-                            <i class="fas fa-plus"></i> Request Overtime
-                        </button>
-                    </div>
-                </div> -->
-
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                 <div>
                     <h3 class="text-2xl font-bold text-white">Overtime Log</h3>
@@ -239,19 +213,6 @@ $extraHead = '
                                         </td>
 
                                         <td class="px-4 py-3 flex gap-2 justify-center">
-                                            
-                                            <!-- <a href="process/process_update_ot.php?id=<?php echo $rowA['ot_id']; ?>&status=Approved" 
-                                               class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1"
-                                               onclick="return confirm('Setujui lembur ini?')">
-                                                <i class="fas fa-check"></i> ACC
-                                            </a>
-
-                                            <a href="process/process_update_ot.php?id=<?php echo $rowA['ot_id']; ?>&status=Rejected" 
-                                               class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-xs font-bold transition flex items-center gap-1"
-                                               onclick="return confirm('Tolak lembur ini?')">
-                                                <i class="fas fa-times"></i> Tolak
-                                            </a> -->
-
                                         <div class="flex items-center gap-2 justify-center">
     
                                             <button onclick="updateStatus('<?php echo $rowA['ot_id']; ?>', 'Approved')" 
@@ -273,16 +234,6 @@ $extraHead = '
                                     <?php 
                                         }
                                     } else {
-                                        // echo 
-                                        // '<tr>
-                                        //     <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic bg-slate-800/50">
-                                        //         <div class="flex flex-col items-center justify-center gap-2">
-                                        //             <i class="fas fa-inbox text-3xl text-slate-700 mb-2"></i>
-                                        //             <span>There are no new overtime requests.</span>
-                                        //         </div>
-                                        //     </td>
-                                        // </tr>';
-                                        // '<tr><td colspan="6" class="px-6 py-12 text-center text-slate-500 italic bg-slate-800/50">There are no new overtime requests.</td></tr>';
                                     echo '<tr><td colspan="5" class="px-4 py-4 text-center text-slate-500 italic">There are no new overtime requests.</td></tr>';
                                     }
                                     ?>
@@ -347,19 +298,6 @@ $extraHead = '
                 <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm text-slate-400">
-                            <!-- <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
-                                <tr>
-                                    <th class="px-6 py-4">Name</th>
-                                    <th class="px-6 py-4">Date</th>
-                                    <th class="px-6 py-4">SPK Number</th>
-                                    <th class="px-6 py-4">Activity / Job Desc</th>
-                                    <th class="px-6 py-4">Time</th>
-                                    <th class="px-6 py-4">Total</th>
-                                    <th class="px-6 py-4">Evidence</th>
-                                    <th class="px-6 py-4 text-center">Status</th>
-                                    <th class="px-6 py-4 text-center">Action</th>
-                                </tr>
-                            </thead> -->
 
                             <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
                                 <tr>
@@ -371,125 +309,6 @@ $extraHead = '
                                     <th class="px-6 py-4 text-center">Action</th>
                                 </tr>
                             </thead>
-
-                            <!-- <tbody class="divide-y divide-slate-700/50" id="tableOvertimeBody">
-                                <?php
-                                // QUERY UTAMA (Tanpa LIMIT, biarkan ambil semua)
-                                $qHist = mysqli_query($conn, "SELECT a.*, b.full_name 
-                                                            FROM tb_overtime a 
-                                                            JOIN tb_users b ON a.user_id = b.user_id 
-                                                            ORDER BY a.date_ot DESC");
-
-                                // MULAI LOOPING DATA (INI BAGIAN YANG TADI HILANG)
-                                if (mysqli_num_rows($qHist) > 0) {
-                                    while ($row = mysqli_fetch_assoc($qHist)) {
-                                        
-                                        // Setup Variabel Tampilan (Warna Status & Row Milik Sendiri)
-                                        $statusClass = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-                                        if($row['status'] == 'Approved') $statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-                                        if($row['status'] == 'Rejected') $statusClass = "bg-red-500/10 text-red-400 border-red-500/20";
-
-                                        $isMe = ($row['user_id'] == $_SESSION['user_id']);
-                                        $rowClass = $isMe ? "bg-slate-800/50" : "";
-                                ?>
-                                        <tr class="hover:bg-slate-700/20 transition <?php echo $rowClass; ?>">
-                                            
-                                            <td class="px-6 py-4 font-bold text-white whitespace-nowrap">
-                                                <div class="flex items-center gap-2">
-                                                    <span><?php echo $row['full_name']; ?></span>
-                                                </div>
-                                            </td>
-
-                                            <td class="px-6 py-4 text-slate-400 whitespace-nowrap">
-                                                <?php echo date('d M Y', strtotime($row['date_ot'])); ?>
-                                            </td>
-
-                                            <td class="px-6 py-4 font-mono text-xs text-indigo-400">
-                                                <?php echo $row['spk_number'] ? $row['spk_number'] : '-'; ?>
-                                            </td>
-
-                                            <td class="px-6 py-4 text-slate-400">
-                                                <?php echo $row['activity']; ?>
-                                            </td>
-
-                                            <td class="px-6 py-4 whitespace-nowrap text-slate-400">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_start'])); ?></span>
-                                                    <span class="text-slate-600">-</span>
-                                                    <span class="bg-slate-900 px-2 py-1 rounded text-xs"><?php echo date('H:i', strtotime($row['time_end'])); ?></span>
-                                                </div>
-                                            </td>
-
-                                            <td class="px-6 py-4">
-                                                <span class="font-bold text-white"><?php echo $row['duration']; ?></span> Jam
-                                            </td>
-
-                                            <td class="px-6 py-4">
-                                                <?php if (!empty($row['evidence'])): ?>
-                                                    <div class="flex flex-col gap-1">
-                                                        <?php 
-                                                        // 1. Pecah nama file (karena dipisah koma)
-                                                        $files = explode(',', $row['evidence']);
-                                                        
-                                                        // 2. Loop untuk menampilkan link setiap file
-                                                        foreach ($files as $index => $file): 
-                                                            $file = trim($file); // Hapus spasi jaga-jaga
-                                                        ?>
-                                                            <a href="uploads/evidence/<?php echo $file; ?>" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 underline flex items-center gap-1 group">
-                                                                <i class="fas fa-paperclip group-hover:text-emerald-400 transition"></i> 
-                                                                <span>Lihat File <?php echo $index + 1; ?></span>
-                                                            </a>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <span class="text-slate-600 text-xs italic opacity-50">- Kosong -</span>
-                                                <?php endif; ?>
-                                            </td>
-
-                                            <td class="px-6 py-4 text-center">
-                                                <span class="px-2 py-1 rounded border text-[10px] font-bold uppercase tracking-wider <?php echo $statusClass; ?>">
-                                                    <?php echo $row['status']; ?>
-                                                </span>
-                                            </td>
-
-                                            <td class="px-6 py-4 text-center">
-                                                <?php 
-                                                // Logika Permission: Admin Bebas, User Cuma Pending & Punya Sendiri
-                                                $isPending = ($row['status'] == 'Pending');
-                                                $isAdmin   = ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section');
-                                                
-                                                $allowAccess = ($isMe && $isPending) || $isAdmin;
-
-                                                if ($allowAccess) { 
-                                                ?>
-                                                    <div class="flex items-center justify-center gap-2">
-                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['duration']; ?>', '<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>')" class="text-blue-400 hover:text-blue-300 transition" title="Edit Data">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <button onclick="confirmDeleteOt('<?php echo $row['ot_id']; ?>')" class="text-red-400 hover:text-red-300 transition" title="Hapus Request">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                <?php } else { ?>
-                                                    <div class="flex items-center justify-center gap-1 text-xs italic text-slate-600">
-                                                        <?php if (!$isPending): ?>
-                                                            <i class="fas fa-check-double text-emerald-800"></i> <span>Final</span>
-                                                        <?php else: ?>
-                                                            <i class="fas fa-user-lock"></i>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php } ?>
-                                            </td>
-                                        </tr>
-                                <?php 
-                                    } // Tutup While
-                                } else { // Jika Data Kosong
-                                ?>
-                                    <tr>
-                                        <td colspan="8" class="px-6 py-8 text-center text-slate-500 italic">Belum ada history lembur siapapun.</td>
-                                    </tr>
-                                <?php } // Tutup Else ?>
-                            </tbody> -->
 
                             <tbody class="divide-y divide-slate-700/50" id="tableOvertimeBody">
                                 <?php
@@ -513,7 +332,8 @@ $extraHead = '
                                         <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500 <?php echo $rowClass; ?>">
                                             
                                             <td class="px-6 py-4 text-center">
-                                                <button onclick="toggleDetail('ot<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">
+                                                <!-- <button onclick="toggleDetail('ot<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none"> -->
+                                                <button data-toggle-id="ot<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
                                                     <i class="fas fa-plus text-xs transition-transform" id="icon-ot<?php echo $id; ?>"></i>
                                                 </button>
                                             </td>
@@ -672,20 +492,6 @@ $extraHead = '
                             <input type="date" name="date_ot" value="<?php echo date('Y-m-d'); ?>" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
                         </div>
 
-                        <!-- <div>
-                            <label class="block text-xs text-slate-400 mb-1 font-medium">Nama Personil</label>
-                            <select name="name" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
-                                <option value="">-- Pilih Personil --</option>
-                                <?php
-                                // Ambil data user (pastikan nama tabelnya tb_users atau tb_user)
-                                $q_user = mysqli_query($conn, "SELECT full_name FROM tb_users ORDER BY full_name ASC");
-                                while ($u = mysqli_fetch_assoc($q_user)) {
-                                    // Kita gunakan full_name sebagai value dan tampilan
-                                    echo '<option value="' . $u['full_name'] . '">' . $u['full_name'] . '</option>';
-                                }
-                                ?>
-                            </select>
-                        </div> -->
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Nomor SPK (Optional)</label>
                             <input type="text" name="spk_number" placeholder="Contoh: SPK-001" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
@@ -1058,35 +864,35 @@ $extraHead = '
         }
 
         // --- FUNGSI TOGGLE DETAIL (VERSI ANTI-BENTROK PAGINATION) ---
-        function toggleDetail(rowId) {
-            const detailRow = document.getElementById('detail-' + rowId);
-            const icon = document.getElementById('icon-' + rowId);
+        // window.toggleDetail = function(rowId) {
+        //     const detailRow = document.getElementById('detail-' + rowId);
+        //     const icon = document.getElementById('icon-' + rowId);
             
-            if (detailRow && icon) {
-                // Cek apakah sedang sembunyi (baik lewat class maupun inline style)
-                const isCurrentlyHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+        //     if (detailRow && icon) {
+        //         // Cek apakah sedang sembunyi (baik lewat class maupun inline style)
+        //         const isCurrentlyHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
 
-                if (isCurrentlyHidden) {
-                    // 1. Tampilkan baris (Hapus class dan paksa style table-row)
-                    detailRow.classList.remove('hidden');
-                    detailRow.style.setProperty('display', 'table-row', 'important'); 
+        //         if (isCurrentlyHidden) {
+        //             // 1. Tampilkan baris (Hapus class dan paksa style table-row)
+        //             detailRow.classList.remove('hidden');
+        //             detailRow.style.setProperty('display', 'table-row', 'important'); 
                     
-                    // 2. Ubah Icon jadi Minus (-)
-                    icon.classList.remove('fa-plus');
-                    icon.classList.add('fa-minus');
-                    icon.style.transform = 'rotate(180deg)';
-                } else {
-                    // 1. Sembunyikan baris (Tambah class dan paksa style none)
-                    detailRow.classList.add('hidden');
-                    detailRow.style.display = 'none';
+        //             // 2. Ubah Icon jadi Minus (-)
+        //             icon.classList.remove('fa-plus');
+        //             icon.classList.add('fa-minus');
+        //             icon.style.transform = 'rotate(180deg)';
+        //         } else {
+        //             // 1. Sembunyikan baris (Tambah class dan paksa style none)
+        //             detailRow.classList.add('hidden');
+        //             detailRow.style.display = 'none';
                     
-                    // 2. Ubah Icon jadi Plus (+)
-                    icon.classList.remove('fa-minus');
-                    icon.classList.add('fa-plus');
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
+        //             // 2. Ubah Icon jadi Plus (+)
+        //             icon.classList.remove('fa-minus');
+        //             icon.classList.add('fa-plus');
+        //             icon.style.transform = 'rotate(0deg)';
+        //         }
+        //     }
+        // }
 
         // --- FUNGSI TUTUP MODAL EDIT ---
         function closeEditModal() {

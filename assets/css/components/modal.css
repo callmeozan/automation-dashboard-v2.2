@@ -10,7 +10,11 @@
 #modalEditUser:not(.hidden) > div:last-child > div,
 #modalOvertime:not(.hidden) > div:last-child > div,
 #modalEditOvertime:not(.hidden) > div:last-child > div,
-#modalOvertime:not(.hidden) > div:last-child > div
+#modalOvertime:not(.hidden) > div:last-child > div,
+#modalAddTemp:not(.hidden) > div:last-child > div,
+#modalEditTemp:not(.hidden) > div:last-child > div,
+#modalEditVib:not(.hidden) > div:last-child > div,
+#modalAddVib:not(.hidden) > div:last-child > div
 {
     animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

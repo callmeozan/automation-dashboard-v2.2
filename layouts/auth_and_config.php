@@ -9,7 +9,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // 2. KONEKSI DATABASE
-include 'config.php';
+// include 'config.php';
+include dirname(__DIR__) . '/config.php';
 
 // 3. AMBIL DATA USER LOGIN
 $id_user = $_SESSION['user_id'];

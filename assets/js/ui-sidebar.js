@@ -86,3 +86,13 @@ function toggleDbMenu() {
         }
     }
 }
+
+function toggleMonitoringMenu() {
+    const submenu = document.getElementById('monitoringSubmenu');
+    const arrow = document.getElementById('arrowMonitoring');
+    
+    if (submenu && arrow) {
+        submenu.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-180');
+    }
+}

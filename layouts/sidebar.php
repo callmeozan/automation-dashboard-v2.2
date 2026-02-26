@@ -63,7 +63,30 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <?php endif; ?>
 
         <?php if ($_SESSION['role'] == 'admin'): ?>
-            <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
+        <div class="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider mt-4">Admin Menu</div>
+            <div class="relative">
+                <?php 
+                    // Ubah nama variabel PHP-nya biar gak bentrok
+                    $is_monitoring_active = ($current_page == 'temperature.php' || $current_page == 'vibration.php');
+                ?>
+                <button onclick="toggleMonitoringMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group <?php echo $is_monitoring_active ? 'text-white bg-slate-800/50' : ''; ?>">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-chart-pie w-6 group-hover:text-emerald-400 transition <?php echo $is_monitoring_active ? 'text-emerald-400' : ''; ?>"></i>
+                        <span class="group-hover:text-white transition">Monitoring</span>
+                    </div>
+                    <i id="arrowMonitoring" class="fas fa-chevron-down text-xs text-slate-500 transition-transform duration-200 <?php echo $is_monitoring_active ? 'rotate-180' : ''; ?>"></i>
+                </button>
+
+                <div id="monitoringSubmenu" class="<?php echo $is_monitoring_active ? '' : 'hidden'; ?> pl-10 space-y-1 mt-1 bg-slate-900/50 py-2 border-l border-slate-800 ml-3">
+                    <a href="temperature.php" class="block text-sm py-1 transition <?php echo ($current_page == 'temperature.php') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-emerald-400'; ?>">
+                        • Motor Temperature
+                    </a>
+                    <a href="vibration.php" class="block text-sm py-1 transition <?php echo ($current_page == 'vibration.php') ? 'text-emerald-400 font-bold' : 'text-slate-400 hover:text-emerald-400'; ?>">
+                        • Motor Vibration
+                    </a>
+                </div>
+            </div>
+
             <a href="manage_users.php" class="nav-item <?php echo ($current_page == 'manage_users.php') ? 'active' : ''; ?>">
                 <i class="fas fa-users-cog w-6"></i> 
                 <span class="font-medium">User Management</span>

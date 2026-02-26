@@ -110,7 +110,8 @@ $extraHead = '
 
                                     <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500">
                                         <td class="px-6 py-4 text-center">
-                                            <button onclick="toggleDetail('<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">
+                                            <!-- <button onclick="toggleDetail('<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none"> -->
+                                            <button data-toggle-id="<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
                                                 <i class="fas fa-plus text-xs transition-transform" id="icon-<?php echo $id; ?>"></i>
                                             </button>
                                         </td>
@@ -573,25 +574,25 @@ $extraHead = '
         })();
 
         // --- A. EXPAND ROW (TOGGLE DETAIL) ---
-        function toggleDetail(rowId) {
-            const detailRow = document.getElementById('detail-' + rowId);
-            const icon = document.getElementById('icon-' + rowId);
+        // window.toggleDetail = function(rowId) {
+        //     const detailRow = document.getElementById('detail-' + rowId);
+        //     const icon = document.getElementById('icon-' + rowId);
 
-            if (detailRow && icon) {
-                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-                if (isHidden) {
-                    detailRow.classList.remove('hidden');
-                    detailRow.style.display = 'table-row';
-                    icon.classList.replace('fa-plus', 'fa-minus');
-                    icon.style.transform = 'rotate(180deg)';
-                } else {
-                    detailRow.classList.add('hidden');
-                    detailRow.style.display = 'none';
-                    icon.classList.replace('fa-minus', 'fa-plus');
-                    icon.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
+        //     if (detailRow && icon) {
+        //         const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+        //         if (isHidden) {
+        //             detailRow.classList.remove('hidden');
+        //             detailRow.style.display = 'table-row';
+        //             icon.classList.replace('fa-plus', 'fa-minus');
+        //             icon.style.transform = 'rotate(180deg)';
+        //         } else {
+        //             detailRow.classList.add('hidden');
+        //             detailRow.style.display = 'none';
+        //             icon.classList.replace('fa-minus', 'fa-plus');
+        //             icon.style.transform = 'rotate(0deg)';
+        //         }
+        //     }
+        // };
 
         // --- B. EDIT ASSET ---
         function editAsset(id, plant, area, machine, comm, plc_hw, plc_sw, plc_ver, hmi_hw, hmi_sw, hmi_ver, drive, ipc, scan) {

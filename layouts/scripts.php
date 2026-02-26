@@ -1,5 +1,6 @@
 <script src="assets/js/ui-sidebar.js"></script>
 <script src="assets/js/ui-modal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
     // --- 1. FUNGSI GLOBAL (Boleh di luar turbo:load) ---
@@ -57,5 +58,42 @@
         });
         // Tandai bahwa listener sudah terpasang
         window.isClickEventAttached = true;
+    }
+
+    // 1. Gembok agar listener tidak dipasang berkali-kali
+    if (!window.isToggleScriptLoaded) {
+        
+        // 2. Pasang telinga di SELURUH HALAMAN (document)
+        document.addEventListener('click', function(event) {
+            
+            // 3. Cek apakah yang diklik adalah tombol kita (atau icon di dalamnya)
+            const toggleBtn = event.target.closest('.btn-toggle-row');
+            
+            // Kalau bukan tombol kita yang diklik, abaikan dan hentikan proses
+            if (!toggleBtn) return; 
+
+            // 4. Ambil ID dari atribut data-toggle-id yang kita buat tadi
+            const rowId = toggleBtn.getAttribute('data-toggle-id');
+            const detailRow = document.getElementById('detail-' + rowId);
+            const icon = document.getElementById('icon-' + rowId);
+
+            if (detailRow && icon) {
+                const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
+                
+                if (isHidden) {
+                    detailRow.classList.remove('hidden');
+                    detailRow.style.display = 'table-row';
+                    icon.classList.replace('fa-plus', 'fa-minus');
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    detailRow.classList.add('hidden');
+                    detailRow.style.display = 'none';
+                    icon.classList.replace('fa-minus', 'fa-plus');
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        });
+
+        window.isToggleScriptLoaded = true;
     }
 </script>
