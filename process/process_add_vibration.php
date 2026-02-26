@@ -5,8 +5,8 @@ include '../layouts/auth_and_config.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $tanggal = mysqli_real_escape_string($conn, $_POST['tanggal']);
-    $mesin = mysqli_real_escape_string($conn, $_POST['mesin']);
-    $motor = mysqli_real_escape_string($conn, $_POST['motor']);
+    $mesin = strtoupper(trim(mysqli_real_escape_string($conn, $_POST['mesin'])));
+    $motor = trim(mysqli_real_escape_string($conn, $_POST['motor']));
     
     // Logika agar kalau inputan dibiarkan kosong, masuknya sebagai NULL (bukan string kosong yang bikin error)
     $de_a = $_POST['de_a'] !== '' ? "'" . mysqli_real_escape_string($conn, $_POST['de_a']) . "'" : "NULL";

@@ -106,11 +106,15 @@ $extraHead = '
                             <i class="fas fa-plus"></i> <span class="whitespace-nowrap">New Record</span>
                         </button>
 
-                        <button id="btnBackToTable" onclick="toggleView('table')" class="hidden h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
+                        <button onclick="document.getElementById('modalLastRecordVib').classList.remove('hidden')" class="w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white py-2 px-4 rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2">
+                            <i class="fas fa-clock"></i> <span class="whitespace-nowrap">Last Record</span>
+                        </button>
+
+                        <button id="btnBackToTable" onclick="toggleView('table')" class="col-span-2 hidden h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
                             <i class="fas fa-table text-cyan-400"></i> <span class="whitespace-nowrap">Data Record</span>
                         </button>
 
-                        <button id="btnViewGraph" onclick="toggleView('graph')" class="h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
+                        <button id="btnViewGraph" onclick="toggleView('graph')" class="col-span-2 h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
                             <i class="fas fa-chart-line text-emerald-400"></i> <span class="whitespace-nowrap">View Graph</span>
                         </button>
                     </div>
@@ -434,11 +438,31 @@ $extraHead = '
                             </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Machine</label>
-                            <input type="text" name="mesin" placeholder="Contoh: MCG-01" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                            <input list="list_mesin" name="mesin" placeholder="Pilih atau ketik mesin..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" autocomplete="off" required>
+                            
+                            <datalist id="list_mesin">
+                                <?php
+                                // Ambil daftar mesin unik dari tabel vibration
+                                $q_mesin = mysqli_query($conn, "SELECT DISTINCT mesin FROM tb_vibration WHERE mesin IS NOT NULL AND mesin != '' ORDER BY mesin ASC");
+                                while($row_mesin = mysqli_fetch_assoc($q_mesin)) {
+                                    echo "<option value='" . htmlspecialchars($row_mesin['mesin']) . "'>";
+                                }
+                                ?>
+                            </datalist>
                         </div>
+                        
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Motor</label>
-                            <input type="text" name="motor" placeholder="Contoh: Motor Mixer 01" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                            <select name="motor" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                                <option value="">-- Pilih Motor --</option>
+                                <?php
+                                // Ambil daftar motor unik dari tabel vibration
+                                $q_motor = mysqli_query($conn, "SELECT DISTINCT motor FROM tb_vibration WHERE motor IS NOT NULL AND motor != '' ORDER BY motor ASC");
+                                while($row_motor = mysqli_fetch_assoc($q_motor)) {
+                                    echo "<option value='" . htmlspecialchars($row_motor['motor']) . "'>" . htmlspecialchars($row_motor['motor']) . "</option>";
+                                }
+                                ?>
+                            </select>
                         </div>
                     </div>
 
@@ -867,6 +891,23 @@ $extraHead = '
             elMotors.forEach(radio => radio.addEventListener('change', loadChartData));
         }
 
+        // ==========================================
+        // FUNGSI FILTER TABEL LAST RECORD VIBRATION
+        // ==========================================
+        function filterLastRecordVib() {
+            const selectedMachine = document.getElementById('filterModalMachineVib').value.toUpperCase();
+            const rows = document.querySelectorAll('.row-last-vib');
+
+            rows.forEach(row => {
+                const rowMachine = row.getAttribute('data-mesin').toUpperCase();
+                if (selectedMachine === "ALL" || rowMachine === selectedMachine) {
+                    row.style.display = ''; 
+                } else {
+                    row.style.display = 'none'; 
+                }
+            });
+        }
+
         // EVENT LISTENER UNTUK AUTO-REFRESH (Aman dari Turbo.js)
         setTimeout(() => {
             let elMachine = document.getElementById('filterMachine');
@@ -885,5 +926,135 @@ $extraHead = '
             }
         }, 200);
     </script>
+
+    <div id="modalLastRecordVib" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden fade-in p-4 md:p-10">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-7xl max-h-full flex flex-col overflow-hidden">
+            
+            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-wave-square text-cyan-400"></i> Last Record Vibration
+                </h3>
+                <button onclick="document.getElementById('modalLastRecordVib').classList.add('hidden')" class="text-slate-400 hover:text-rose-400 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-800/50 border-b border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <label class="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+                    <i class="fas fa-filter text-cyan-500"></i> Filter Machine:
+                </label>
+                <select id="filterModalMachineVib" onchange="filterLastRecordVib()" class="w-full sm:w-64 bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none cursor-pointer shadow-inner">
+                    <option value="ALL">-- Tampilkan Semua Mesin --</option>
+                    <?php
+                    $q_mesin_modal = mysqli_query($conn, "SELECT DISTINCT mesin FROM tb_vibration WHERE mesin IS NOT NULL AND mesin != '' ORDER BY mesin ASC");
+                    while($rm = mysqli_fetch_assoc($q_mesin_modal)) {
+                        echo "<option value='" . htmlspecialchars($rm['mesin']) . "'>" . htmlspecialchars($rm['mesin']) . "</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+            
+            <div class="p-4 md:p-0 overflow-y-auto custom-scrollbar">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-950 sticky top-0 z-10 shadow-md hidden xl:table-header-group">
+                        <tr class="text-xs uppercase font-bold text-slate-400 whitespace-nowrap">
+                            <th class="px-4 py-4 border-b border-slate-700">Machine</th>
+                            <th class="px-4 py-4 border-b border-slate-700">Motor</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">DE-A</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">DE-H</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">DE-V</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">NDE-A</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">NDE-H</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">NDE-V</th>
+                            <th class="px-4 py-4 border-b border-slate-700 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="block xl:table-row-group xl:divide-y divide-slate-800 bg-transparent xl:bg-slate-800/30 p-0">
+                        <?php
+                        // QUERY SAKTI 1 BARIS
+                        $q_last = "
+                        SELECT t1.* FROM tb_vibration t1
+                        INNER JOIN (
+                            SELECT mesin, motor, MAX(id) as max_id FROM tb_vibration
+                            WHERE mesin IS NOT NULL AND motor IS NOT NULL GROUP BY mesin, motor
+                        ) t2 ON t1.id = t2.max_id ORDER BY t1.mesin ASC, t1.motor ASC
+                        ";
+                        $res_last = mysqli_query($conn, $q_last);
+
+                        if($res_last && mysqli_num_rows($res_last) > 0) {
+                            
+                            // LOOPING UNTUK MEMBACA SEMUA BARIS DATA
+                            while($d = mysqli_fetch_assoc($res_last)) {
+                                
+                                // Default batas limit
+                                $limit = isset($d['vib_limit']) ? $d['vib_limit'] : 4.5; 
+                                
+                                $c = []; // Array untuk menyimpan warna text
+                                $v = []; // Array untuk menyimpan nilai angka
+                                
+                                // Simpan nilai asli ke array agar mudah dicetak
+                                $v['de_a'] = isset($d['de_a']) ? (float)$d['de_a'] : 0;
+                                $v['de_h'] = isset($d['de_h']) ? (float)$d['de_h'] : 0;
+                                $v['de_v'] = isset($d['de_v']) ? (float)$d['de_v'] : 0;
+                                $v['nde_a'] = isset($d['nde_a']) ? (float)$d['nde_a'] : 0;
+                                $v['nde_h'] = isset($d['nde_h']) ? (float)$d['nde_h'] : 0;
+                                $v['nde_v'] = isset($d['nde_v']) ? (float)$d['nde_v'] : 0;
+
+                                $nilai_de = 0;
+                                $nilai_nde = 0;
+
+                                // --- LOGIKA PENGECEKAN DE ---
+                                if($v['de_a'] > $limit) { $nilai_de++; $c['de_a'] = 'text-rose-500 font-bold'; } else { $c['de_a'] = 'text-emerald-400'; }
+                                if($v['de_h'] > $limit) { $nilai_de++; $c['de_h'] = 'text-rose-500 font-bold'; } else { $c['de_h'] = 'text-emerald-400'; }
+                                if($v['de_v'] > $limit) { $nilai_de++; $c['de_v'] = 'text-rose-500 font-bold'; } else { $c['de_v'] = 'text-emerald-400'; }
+
+                                // --- LOGIKA PENGECEKAN NDE ---
+                                if($v['nde_a'] > $limit) { $nilai_nde++; $c['nde_a'] = 'text-rose-500 font-bold'; } else { $c['nde_a'] = 'text-emerald-400'; }
+                                if($v['nde_h'] > $limit) { $nilai_nde++; $c['nde_h'] = 'text-rose-500 font-bold'; } else { $c['nde_h'] = 'text-emerald-400'; }
+                                if($v['nde_v'] > $limit) { $nilai_nde++; $c['nde_v'] = 'text-rose-500 font-bold'; } else { $c['nde_v'] = 'text-emerald-400'; }
+
+                                // --- LOGIKA PENENTUAN STATUS (Persis seperti web lama) ---
+                                if ($nilai_de == 3 || $nilai_nde == 3) {
+                                    $status = "1. BAD"; 
+                                    $bg_status = "bg-rose-500/20 text-rose-400 border border-rose-500/50";
+                                } else if ($nilai_de == 0 && $nilai_nde == 0) {
+                                    $status = "3. GOOD"; 
+                                    $bg_status = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50";
+                                } else {
+                                    $status = "2. WARNING"; 
+                                    $bg_status = "bg-amber-500/20 text-amber-400 border border-amber-500/50";
+                                }
+                                
+                                // ==========================================
+                                // PASTIKAN KODINGAN ECHO <TR> ADA DI SINI
+                                // ==========================================
+                                echo "<tr class='row-last-vib block xl:table-row bg-slate-800 xl:bg-transparent rounded-xl xl:rounded-none border border-slate-700 xl:border-none mb-4 xl:mb-0 hover:bg-slate-700/50 transition overflow-hidden shadow-lg xl:shadow-none' data-mesin='" . htmlspecialchars($d['mesin']) . "'>";
+                                
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none font-bold text-white items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>Machine</span> <span>{$d['mesin']}</span> </td>";
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>Motor</span> <span class='text-right xl:text-left'>{$d['motor']}</span> </td>";
+                                
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none xl:text-center items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>DE-A</span> <span class='{$c['de_a']}'>{$v['de_a']}</span> </td>";
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none xl:text-center items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>DE-H</span> <span class='{$c['de_h']}'>{$v['de_h']}</span> </td>";
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none xl:text-center items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>DE-V</span> <span class='{$c['de_v']}'>{$v['de_v']}</span> </td>";
+                                
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none xl:text-center items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>NDE-A</span> <span class='{$c['nde_a']}'>{$v['nde_a']}</span> </td>";
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none xl:text-center items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>NDE-H</span> <span class='{$c['nde_h']}'>{$v['nde_h']}</span> </td>";
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-2 xl:py-4 border-b border-slate-700/50 xl:border-none xl:text-center items-center'> <span class='xl:hidden text-xs text-slate-500 uppercase'>NDE-V</span> <span class='{$c['nde_v']}'>{$v['nde_v']}</span> </td>";
+                                
+                                echo "<td class='flex justify-between xl:table-cell px-4 py-3 xl:py-4 xl:text-center items-center bg-slate-900/50 xl:bg-transparent'> <span class='xl:hidden text-xs text-slate-500 uppercase'>Status</span> <span class='px-3 py-1 rounded-full text-xs font-bold {$bg_status}'>{$status}</span> </td>";
+                                
+                                echo "</tr>";
+                            
+                            } // TUTUP KURAUNG WHILE
+                            
+                        } else {
+                            echo "<tr class='block xl:table-row'><td colspan='9' class='block xl:table-cell text-center py-8 text-slate-500'>Belum ada record data.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

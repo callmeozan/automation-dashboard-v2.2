@@ -6,8 +6,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Ambil ID dan data baru
     $id      = mysqli_real_escape_string($conn, $_POST['id']);
     $tanggal = mysqli_real_escape_string($conn, $_POST['tanggal']);
-    $mesin   = mysqli_real_escape_string($conn, $_POST['mesin']);
-    $motor   = mysqli_real_escape_string($conn, $_POST['motor']);
+    $mesin = strtoupper(trim(mysqli_real_escape_string($conn, $_POST['mesin'])));
+    $motor = trim(mysqli_real_escape_string($conn, $_POST['motor']));
     $de      = mysqli_real_escape_string($conn, $_POST['de']);
     $body    = mysqli_real_escape_string($conn, $_POST['body']);
     $nde     = mysqli_real_escape_string($conn, $_POST['nde']);

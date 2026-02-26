@@ -115,11 +115,15 @@ $extraHead = '
                             <i class="fas fa-plus"></i> <span class="whitespace-nowrap">New Record</span>
                         </button>
 
-                        <button id="btnBackToTable" onclick="toggleView('table')" class="hidden h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
+                        <button onclick="document.getElementById('modalLastRecord').classList.remove('hidden')" class="h-[42px] w-full md:w-auto bg-cyan-600 hover:bg-cyan-500 text-white px-4 rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2">
+                            <i class="fas fa-clock"></i> <span class="whitespace-nowrap">Last Record</span>
+                        </button>
+
+                        <button id="btnBackToTable" onclick="toggleView('table')" class="col-span-2 hidden h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
                             <i class="fas fa-table text-cyan-400"></i> <span class="whitespace-nowrap">Data Record</span>
                         </button>
 
-                        <button id="btnViewGraph" onclick="toggleView('graph')" class="h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
+                        <button  id="btnViewGraph" onclick="toggleView('graph')" class="col-span-2 h-[42px] w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 rounded-lg border border-slate-700 text-sm transition font-medium flex items-center justify-center gap-2">
                             <i class="fas fa-chart-line text-emerald-400"></i> <span class="whitespace-nowrap">View Graph</span>
                         </button>
                     </div>
@@ -424,11 +428,28 @@ $extraHead = '
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Machine</label>
-                            <input type="text" name="mesin" placeholder="Contoh: MCG-01" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                            <input list="list_mesin" name="mesin" placeholder="Pilih atau ketik mesin..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" autocomplete="off" required>
+                            <datalist id="list_mesin">
+                                <?php
+                                $q_mesin = mysqli_query($conn, "SELECT DISTINCT mesin FROM tb_temperature WHERE mesin IS NOT NULL AND mesin != '' ORDER BY mesin ASC");
+                                while($row_mesin = mysqli_fetch_assoc($q_mesin)) {
+                                    echo "<option value='" . htmlspecialchars($row_mesin['mesin']) . "'>";
+                                }
+                                ?>
+                            </datalist>
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Motor</label>
-                            <input type="text" name="motor" placeholder="Contoh: Motor Mixer 01" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                            <select name="motor" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                                <option value="">-- Pilih Motor --</option>
+                                <?php
+                                // Ambil daftar motor yang tidak duplikat dari database
+                                $q_motor = mysqli_query($conn, "SELECT DISTINCT motor FROM tb_temperature WHERE motor IS NOT NULL AND motor != '' ORDER BY motor ASC");
+                                while($row_motor = mysqli_fetch_assoc($q_motor)) {
+                                    echo "<option value='" . htmlspecialchars($row_motor['motor']) . "'>" . htmlspecialchars($row_motor['motor']) . "</option>";
+                                }
+                                ?>
+                            </select>
                         </div>
                     </div>
 
@@ -492,11 +513,29 @@ $extraHead = '
                             </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Machine</label>
-                            <input type="text" name="mesin" id="edit_mesin" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
+                            <input id="edit_mesin" list="edit_list_mesin" name="mesin" placeholder="Pilih atau ketik mesin..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" autocomplete="off" required>
+                            
+                            <datalist id="edit_list_mesin">
+                                <?php
+                                $q_mesin = mysqli_query($conn, "SELECT DISTINCT mesin FROM tb_temperature WHERE mesin IS NOT NULL AND mesin != '' ORDER BY mesin ASC");
+                                while($row_mesin = mysqli_fetch_assoc($q_mesin)) {
+                                    echo "<option value='" . htmlspecialchars($row_mesin['mesin']) . "'>";
+                                }
+                                ?>
+                            </datalist>
                         </div>
+                        
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Motor</label>
-                            <input type="text" name="motor" id="edit_motor" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
+                            <select id="edit_motor" name="motor" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none" required>
+                                <option value="">-- Pilih Motor --</option>
+                                <?php
+                                $q_motor = mysqli_query($conn, "SELECT DISTINCT motor FROM tb_temperature WHERE motor IS NOT NULL AND motor != '' ORDER BY motor ASC");
+                                while($row_motor = mysqli_fetch_assoc($q_motor)) {
+                                    echo "<option value='" . htmlspecialchars($row_motor['motor']) . "'>" . htmlspecialchars($row_motor['motor']) . "</option>";
+                                }
+                                ?>
+                            </select>
                         </div>
                     </div>
 
@@ -783,6 +822,29 @@ $extraHead = '
             }
         }
 
+        // ==========================================
+        // FUNGSI FILTER TABEL LAST RECORD DI MODAL
+        // ==========================================
+        function filterLastRecord() {
+            // Ambil nama mesin yang dipilih dari dropdown
+            const selectedMachine = document.getElementById('filterModalMachine').value.toUpperCase();
+            
+            // Ambil semua baris data di dalam tabel Last Record
+            const rows = document.querySelectorAll('.row-last-record');
+
+            rows.forEach(row => {
+                // Ambil atribut data-mesin dari masing-masing baris
+                const rowMachine = row.getAttribute('data-mesin').toUpperCase();
+                
+                // Logika: Jika pilih "ALL" atau nama mesinnya cocok, maka tampilkan. Kalau tidak, sembunyikan!
+                if (selectedMachine === "ALL" || rowMachine === selectedMachine) {
+                    row.style.display = ''; 
+                } else {
+                    row.style.display = 'none'; 
+                }
+            });
+        }
+
         // FUNGSI MURNI UNTUK MENGGAMBAR GRAFIK (GAYA MINIMALIST VIBRATION)
         function renderChart(data) {
             const ctx = document.getElementById('tempTrendChart').getContext('2d');
@@ -950,5 +1012,109 @@ $extraHead = '
             }
         }, 200);
     </script>
+
+    <div id="modalLastRecord" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden fade-in p-4 md:p-10">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-6xl max-h-full flex flex-col overflow-hidden">
+            
+            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-clipboard-check text-cyan-400"></i> Last Record Temperature
+                </h3>
+                <button onclick="document.getElementById('modalLastRecord').classList.add('hidden')" class="text-slate-400 hover:text-rose-400 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="px-6 py-3 bg-slate-800/50 border-b border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <label class="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+                    <i class="fas fa-filter text-cyan-500"></i> Filter Machine:
+                </label>
+                <select id="filterModalMachine" onchange="filterLastRecord()" class="w-full sm:w-64 bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none cursor-pointer shadow-inner">
+                    <option value="ALL">-- Tampilkan Semua Mesin --</option>
+                    <?php
+                    // Ambil daftar mesin untuk filter modal
+                    $q_mesin_modal = mysqli_query($conn, "SELECT DISTINCT mesin FROM tb_temperature WHERE mesin IS NOT NULL AND mesin != '' ORDER BY mesin ASC");
+                    while($rm = mysqli_fetch_assoc($q_mesin_modal)) {
+                        echo "<option value='" . htmlspecialchars($rm['mesin']) . "'>" . htmlspecialchars($rm['mesin']) . "</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+            
+            <div class="p-4 md:p-0 overflow-y-auto custom-scrollbar">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-950 sticky top-0 z-10 shadow-md hidden md:table-header-group">
+                        <tr class="text-xs uppercase font-bold text-slate-400 whitespace-nowrap">
+                            <th class="px-6 py-4 border-b border-slate-700">Machine</th>
+                            <th class="px-6 py-4 border-b border-slate-700">Motor</th>
+                            <th class="px-6 py-4 border-b border-slate-700">Last Record</th>
+                            <th class="px-6 py-4 border-b border-slate-700 text-center">DE</th>
+                            <th class="px-6 py-4 border-b border-slate-700 text-center">Body</th>
+                            <th class="px-6 py-4 border-b border-slate-700 text-center">NDE</th>
+                            <th class="px-6 py-4 border-b border-slate-700 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="block md:table-row-group md:divide-y divide-slate-800 bg-transparent md:bg-slate-800/30 p-0">
+                        <?php
+                        $q_last = "
+                        SELECT t1.*
+                        FROM tb_temperature t1
+                        INNER JOIN (
+                            SELECT mesin, motor, MAX(id) as max_id
+                            FROM tb_temperature
+                            WHERE mesin IS NOT NULL AND motor IS NOT NULL
+                            GROUP BY mesin, motor
+                        ) t2 ON t1.id = t2.max_id
+                        ORDER BY t1.mesin ASC, t1.motor ASC
+                        ";
+                        $res_last = mysqli_query($conn, $q_last);
+
+                        if($res_last && mysqli_num_rows($res_last) > 0) {
+                            while($d = mysqli_fetch_assoc($res_last)) {
+                                $limit = isset($d['temp_limit']) ? $d['temp_limit'] : 85; 
+                                $de = isset($d['de']) ? $d['de'] : 0;
+                                $body = isset($d['body']) ? $d['body'] : 0;
+                                $nde = isset($d['nde']) ? $d['nde'] : 0;
+
+                                $score = 0;
+                                $c_de = 'text-emerald-400'; $c_body = 'text-emerald-400'; $c_nde = 'text-emerald-400';
+
+                                if($de > $limit) { $score++; $c_de = 'text-rose-500 font-bold'; }
+                                if($body > $limit) { $score++; $c_body = 'text-rose-500 font-bold'; }
+                                if($nde > $limit) { $score++; $c_nde = 'text-rose-500 font-bold'; }
+
+                                if($score == 3) {
+                                    $status = "1. BAD"; $bg_status = "bg-rose-500/20 text-rose-400 border border-rose-500/50";
+                                } else if ($score == 0) {
+                                    $status = "3. GOOD"; $bg_status = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50";
+                                } else {
+                                    $status = "2. WARNING"; $bg_status = "bg-amber-500/20 text-amber-400 border border-amber-500/50";
+                                }
+
+                                $tanggal_format = date('d M Y', strtotime($d['tanggal']));
+                                
+                                // TAMBAHAN PENTING: Class 'row-last-record' dan atribut 'data-mesin' agar bisa disaring JS
+                                echo "<tr class='row-last-record block md:table-row bg-slate-800 md:bg-transparent rounded-xl md:rounded-none border border-slate-700 md:border-none mb-4 md:mb-0 hover:bg-slate-700/50 transition overflow-hidden shadow-lg md:shadow-none' data-mesin='" . htmlspecialchars($d['mesin']) . "'>";
+                                
+                                echo "<td class='flex justify-between md:table-cell px-4 py-2 md:px-6 md:py-4 border-b border-slate-700/50 md:border-none md:font-bold md:text-white items-center'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>Machine</span> <span class='font-bold text-white'>{$d['mesin']}</span> </td>";
+                                echo "<td class='flex justify-between md:table-cell px-4 py-2 md:px-6 md:py-4 border-b border-slate-700/50 md:border-none items-center'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>Motor</span> <span class='text-right md:text-left'>{$d['motor']}</span> </td>";
+                                echo "<td class='flex justify-between md:table-cell px-4 py-2 md:px-6 md:py-4 border-b border-slate-700/50 md:border-none md:text-slate-400 items-center'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>Date</span> <span>{$tanggal_format}</span> </td>";
+                                echo "<td class='flex justify-between md:table-cell px-4 py-2 md:px-6 md:py-4 border-b border-slate-700/50 md:border-none md:text-center items-center'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>DE</span> <span class='{$c_de}'>{$de}</span> </td>";
+                                echo "<td class='flex justify-between md:table-cell px-4 py-2 md:px-6 md:py-4 border-b border-slate-700/50 md:border-none md:text-center items-center'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>Body</span> <span class='{$c_body}'>{$body}</span> </td>";
+                                echo "<td class='flex justify-between md:table-cell px-4 py-2 md:px-6 md:py-4 border-b border-slate-700/50 md:border-none md:text-center items-center'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>NDE</span> <span class='{$c_nde}'>{$nde}</span> </td>";
+                                echo "<td class='flex justify-between md:table-cell px-4 py-3 md:px-6 md:py-4 md:text-center items-center bg-slate-900/50 md:bg-transparent'> <span class='md:hidden text-xs font-bold text-slate-500 uppercase tracking-wider'>Status</span> <span class='px-3 py-1 rounded-full text-xs font-bold {$bg_status} shadow-sm'>{$status}</span> </td>";
+                                
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr class='block md:table-row'><td colspan='7' class='block md:table-cell text-center py-8 text-slate-500'>Belum ada record data.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+    </div>
 </body>
 </html>
