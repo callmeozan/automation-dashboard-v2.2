@@ -13,9 +13,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
     <nav class="flex-1 px-4 py-6 space-y-2">
         
-        <a href="dashboard.php" class="nav-item <?php echo ($current_page == 'dashboard.php') ? 'active' : ''; ?>">
+        <a href="dashboard.php" class="nav-item hover:text-cyan-400 <?php echo ($current_page == 'dashboard.php') ? 'active' : ''; ?>">
             <i class="fas fa-tachometer-alt w-6"></i>
-            <span class="font-medium">Dashboard</span>
+            <span class="font-medium hover:text-white">Dashboard</span>
         </a>
 
         <div class="relative">
@@ -23,7 +23,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 // Cek apakah sedang di salah satu menu database
                 $is_db_active = ($current_page == 'database.php' || $current_page == 'master_items.php');
             ?>
-            <button onclick="toggleDbMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group <?php echo $is_db_active ? 'text-white bg-slate-800/50' : ''; ?>">
+            <button onclick="toggleDbMenu()" class="nav-item hover:text-cyan-400 w-full flex justify-between items-center focus:outline-none group <?php echo $is_db_active ? 'text-white bg-slate-800/50' : ''; ?>">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-database w-6 group-hover:text-cyan-400 transition <?php echo $is_db_active ? 'text-cyan-400' : ''; ?>"></i>
                     <span class="group-hover:text-white transition">Database</span>
@@ -41,25 +41,25 @@ $current_page = basename($_SERVER['PHP_SELF']);
             </div>
         </div>
 
-        <a href="laporan.php" class="nav-item <?php echo ($current_page == 'laporan.php') ? 'active' : ''; ?>">
+        <a href="laporan.php" class="nav-item hover:text-cyan-400 <?php echo ($current_page == 'laporan.php') ? 'active' : ''; ?>">
             <i class="fas fa-clipboard-list w-6"></i>
-            <span>Daily Report</span>
+            <span class="hover:text-white">Daily Report</span>
         </a>
 
-        <a href="project.php" class="nav-item <?php echo ($current_page == 'project.php') ? 'active' : ''; ?>">
+        <a href="project.php" class="nav-item hover:text-cyan-400 <?php echo ($current_page == 'project.php') ? 'active' : ''; ?>">
             <i class="fas fa-project-diagram w-6"></i>
-            <span>Projects</span>
+            <span class="hover:text-white">Projects</span>
         </a>
 
-        <a href="overtime.php" class="nav-item <?php echo ($current_page == 'overtime.php') ? 'active' : ''; ?>">
+        <a href="overtime.php" class="nav-item hover:text-cyan-400 <?php echo ($current_page == 'overtime.php') ? 'active' : ''; ?>">
             <i class="fas fa-clock w-6"></i>
-            <span>Overtime</span>
+            <span class="hover:text-white">Overtime</span>
         </a>
 
         <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
             <a href="dashboard.php?open_modal=adduser" class="nav-item hover:text-cyan-400 transition">
                 <i class="fa-solid fa-user-plus w-6"></i>
-                <span>Add User</span>
+                <span class="hover:text-white">Add User</span>
             </a>
         <?php endif; ?>
 
@@ -70,7 +70,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
                     // Ubah nama variabel PHP-nya biar gak bentrok
                     $is_monitoring_active = ($current_page == 'temperature.php' || $current_page == 'vibration.php');
                 ?>
-                <button onclick="toggleMonitoringMenu()" class="nav-item w-full flex justify-between items-center focus:outline-none group <?php echo $is_monitoring_active ? 'text-white bg-slate-800/50' : ''; ?>">
+                <button onclick="toggleMonitoringMenu()" class="nav-item hover:text-cyan-400 w-full flex justify-between items-center focus:outline-none group <?php echo $is_monitoring_active ? 'text-white bg-slate-800/50' : ''; ?>">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-chart-pie w-6 group-hover:text-cyan-400 transition <?php echo $is_monitoring_active ? 'text-cyan-400' : ''; ?>"></i>
                         <span class="group-hover:text-white transition">Monitoring</span>
@@ -88,9 +88,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </div>
             </div>
 
-            <a href="manage_users.php" class="nav-item <?php echo ($current_page == 'manage_users.php') ? 'active' : ''; ?>">
+            <a href="manage_users.php" class="nav-item hover:text-cyan-400 <?php echo ($current_page == 'manage_users.php') ? 'active' : ''; ?>">
                 <i class="fas fa-users-cog w-6"></i> 
-                <span class="font-medium">User Management</span>
+                <span class="font-medium hover:text-white">User Management</span>
             </a>
         <?php endif; ?>
 

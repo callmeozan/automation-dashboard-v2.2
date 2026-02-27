@@ -95,30 +95,27 @@ $extraHead = '
                                     </div>
 
                                     <div class="flex items-end gap-2 w-full md:w-auto mt-4 xl:mt-0">
-    
+                                        
                                         <div class="flex-1 md:flex-none">
                                             <label class="block text-xs text-slate-400 mb-1">From</label>
-                                            <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
-                                                <input type="date" id="startDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 cursor-pointer [&::-webkit-calendar-picker-indicator]:invert">
-                                            </div>
+                                            <input type="date" id="startDate" class="h-[42px] w-full md:w-32px bg-slate-800/30 border border-slate-700 text-slate-300 px-3 rounded-lg focus:border-cyan-500 focus:outline-none transition hover:border-slate-600 text-sm cursor-pointer [color-scheme:dark]">
                                         </div>
 
-                                        <span class="text-slate-500 mb-3 self-center">-</span>
+                                        <span class="text-slate-600 mb-2.5 font-medium">-</span>
 
                                         <div class="flex-1 md:flex-none">
                                             <label class="block text-xs text-slate-400 mb-1">To</label>
-                                            <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
-                                                <input type="date" id="endDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 cursor-pointer [&::-webkit-calendar-picker-indicator]:invert">
-                                            </div>
+                                            <input type="date" id="endDate" class="h-[42px] w-full md:w-32px bg-slate-800/30 border border-slate-700 text-slate-300 px-3 rounded-lg focus:border-cyan-500 focus:outline-none transition hover:border-slate-600 text-sm cursor-pointer [color-scheme:dark]">
                                         </div>
 
                                     </div>
+
                                 </div>
                                 
                                 <div class="flex flex-col md:flex-row gap-2 w-full xl:w-auto mt-4 xl:mt-0">
                                     <form method="GET" action="" class="w-full md:w-32">
                                         <label class="block text-xs text-slate-400 mb-1">Select Year</label>
-                                            <select name="tahun" onchange="this.form.submit()" class="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
+                                            <select name="tahun" onchange="this.form.submit()" class="bg-slate-800/30 border border-slate-700 text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
                                             <?php
                                             $thn_skrg = date('Y');
                                             // Loop 5 tahun ke belakang
