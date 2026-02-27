@@ -30,7 +30,7 @@ $pageTitle = "Master Items Database";
 $extraMenu = '
     <div class="flex items-center gap-4">
         <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4">
-            Total Items: <span class="text-emerald-400 font-bold">' . number_format($totalData) . '</span>
+            Total Items: <span class="text-cyan-400 font-bold">' . number_format($totalData) . '</span>
         </div>';
 
 // [SLOT HEAD] Style Print & Animasi Modal + Library TomSelect
@@ -98,7 +98,7 @@ $extraHead = '
                     <a href="database.php" class="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white hover:border-slate-500 border-b-2 border-transparent transition">
                         <i class="fas fa-microchip mr-2"></i> Machine & Assets
                     </a>
-                    <a href="master_items.php" class="px-6 py-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400">
+                    <a href="master_items.php" class="px-6 py-3 text-sm font-bold text-cyan-400 border-b-2 border-cyan-400">
                         <i class="fas fa-box mr-2"></i> Master Items
                     </a>
                 </div>
@@ -107,7 +107,7 @@ $extraHead = '
                     <div class="relative flex-1 max-w-md">
                         <form method="GET" action="master_items.php">
                             <i class="fas fa-search absolute left-4 top-3.5 text-slate-500"></i>
-                            <input type="text" name="search" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" placeholder="Search Item Code, Name, Brand... (Press Enter)" class="w-full bg-slate-800 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-lg focus:border-emerald-500 focus:outline-none transition">
+                            <input type="text" name="search" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" placeholder="Search Item Code, Name, Brand... (Press Enter)" class="w-full bg-slate-800 border border-slate-700 text-white pl-10 pr-4 py-3 rounded-lg focus:border-cyan-500 focus:outline-none transition">
                         </form>
                     </div>
 

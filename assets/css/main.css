@@ -108,9 +108,9 @@ body.light-mode #mobileNavContainer > div {
 }
 
 /* Mengubah kotak hijau pelindung menu aktif (Pill) jadi terang */
-body.light-mode #mobileNavContainer .bg-emerald-900\/40 {
-    background-color: #ecfdf5 !important; /* emerald-50 */
-    border-color: #d1fae5 !important; /* emerald-100 */
+body.light-mode #mobileNavContainer .bg-cyan-900\/40 {
+    background-color: #ecfdf5 !important; /* cyan-50 */
+    border-color: #d1fae5 !important; /* cyan-100 */
 }
 
 /* Mengubah tombol toggle (X) saat ditutup (transparan) jadi terang */

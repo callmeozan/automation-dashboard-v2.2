@@ -1,10 +1,24 @@
 .btn-primary {
-    width: 100%; padding: 0.75rem; background-color: #059669; /* Emerald 600 */
-    color: white; border-radius: 0.5rem; font-weight: 500;
-    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-    transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+    width: 100%; 
+    padding: 0.75rem; 
+    background-color: #0891b2 !important; /* Cyan 600 */
+    color: white; 
+    border-radius: 0.5rem; 
+    font-weight: 500;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    gap: 0.5rem;
+    transition: all 0.2s; 
+    /* Shadow juga kita ubah ke nuansa Cyan agar menyala lembut */
+    box-shadow: 0 4px 6px -1px rgba(8, 145, 178, 0.3); 
 }
-.btn-primary:hover { background-color: #10b981; }
+
+.btn-primary:hover { 
+    background-color: #06b6d4 !important; /* Cyan 500 */
+    box-shadow: 0 10px 15px -3px rgba(8, 145, 178, 0.4);
+    transform: translateY(-1px); /* Efek sedikit naik saat di-hover biar premium */
+}
 
 .btn-secondary {
     width: 100%; padding: 0.75rem; background-color: #334155; /* Slate 700 */

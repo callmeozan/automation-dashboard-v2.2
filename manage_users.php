@@ -13,7 +13,7 @@ $pageTitle = "System User Management";
 
 // [SLOT HEADER] Tombol Tambah User
 $extraMenu = '
-    <button onclick="openModal(\'modalAddUser\')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+    <button onclick="openModal(\'modalAddUser\')" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-lg shadow-cyan-600/20 flex items-center gap-2">
         <i class="fas fa-plus"></i> <span class="hidden sm:inline">Tambah User</span>
     </button>';
 

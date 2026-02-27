@@ -30,7 +30,7 @@ $menus[] = ['url' => 'logout.php', 'icon' => 'fas fa-sign-out-alt', 'label' => '
   }
 </style>
 
-<button id="mobileNavToggle" class="fixed bottom-20 right-4 z-[60] md:hidden w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none active:scale-95 bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 border border-emerald-500">
+<button id="mobileNavToggle" class="fixed bottom-20 right-4 z-[60] md:hidden w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 focus:outline-none active:scale-95 bg-cyan-600 text-white shadow-lg shadow-cyan-900/50 border border-cyan-500">
     <i class="fas fa-times text-base transition-transform duration-300" id="mobileNavIcon"></i>
 </button>
 
@@ -53,8 +53,8 @@ $menus[] = ['url' => 'logout.php', 'icon' => 'fas fa-sign-out-alt', 'label' => '
                     }
 
                     $isLogout = isset($menu['is_logout']) && $menu['is_logout'];
-                    $colorClass = $isActive ? 'text-emerald-400' : 'text-slate-400';
-                    $hoverClass = $isLogout ? 'hover:text-red-400' : 'hover:text-emerald-300';
+                    $colorClass = $isActive ? 'text-cyan-400' : 'text-slate-400';
+                    $hoverClass = $isLogout ? 'hover:text-red-400' : 'hover:text-cyan-300';
                 ?>
                 
                 <a href="<?php echo $menu['url']; ?>" 
@@ -62,7 +62,7 @@ $menus[] = ['url' => 'logout.php', 'icon' => 'fas fa-sign-out-alt', 'label' => '
                    class="relative flex flex-col items-center justify-center shrink-0 transition-all duration-300 rounded-xl basis-1/6 py-1.5 px-0 <?php echo "$colorClass $hoverClass"; ?>">
                     
                     <?php if ($isActive && !$isLogout): ?>
-                        <div class="absolute inset-0 bg-emerald-900/40 border border-emerald-500/20 rounded-xl transition-colors duration-300 animate-expand-pill"></div>
+                        <div class="absolute inset-0 bg-cyan-900/40 border border-cyan-500/20 rounded-xl transition-colors duration-300 animate-expand-pill"></div>
                     <?php endif; ?>
 
                     <div class="relative z-10 text-[1.1rem] mb-0.5 group-active:scale-90 transition-transform <?php echo $isActive ? 'animate-blub' : ''; ?>">
@@ -141,7 +141,7 @@ $menus[] = ['url' => 'logout.php', 'icon' => 'fas fa-sign-out-alt', 'label' => '
                     // UBAH JADI ICON X & TOMBOL HIJAU SOLID
                     navIcon.className = 'fas fa-times text-base transition-transform duration-300';
                     navIcon.style.transform = 'rotate(0deg)';
-                    toggleBtn.className = baseBtnClasses + " bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 border border-emerald-500";
+                    toggleBtn.className = baseBtnClasses + " bg-cyan-600 text-white shadow-lg shadow-cyan-900/50 border border-cyan-500";
                 } else {
                     // SEMBUNYIKAN NAV
                     navContainer.classList.replace('translate-y-0', 'translate-y-[150%]');

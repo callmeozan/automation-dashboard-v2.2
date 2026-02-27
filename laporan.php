@@ -67,79 +67,6 @@ $extraHead = '
 <!-- HEAD ADA DISINI -->
 <?php include 'layouts/head.php'; ?>
 
-<!-- <head>
-    <meta charset="UTF-8">
-    <meta name="theme-color" content="#03142c">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Harian - Automation Portal</title>
-
-    <link rel="icon" href="image/gajah_tunggal.png" type="image/png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/layouts/sidebar.css">
-    <link rel="stylesheet" href="assets/css/layouts/header.css">
-    <link rel="stylesheet" href="assets/css/components/button.css">
-    <link rel="stylesheet" href="assets/css/components/card.css">
-    <link rel="stylesheet" href="assets/css/components/modal.css">
-    <link rel="stylesheet" href="assets/css/main.css">
-    <link href="assets/vendor/tom-select.css" rel="stylesheet">
-    <script src="assets/vendor/tailwind.js"></script>
-    <script src="assets/vendor/sweetalert2.all.min.js"></script>
-    <script src="assets/vendor/apexcharts.js"></script>
-    <script src="assets/vendor/tom-select.complete.min.js"></script>
-
-    <style>
-        /* Custom Style Dark Mode untuk Tom Select */
-        .ts-control {
-            background-color: #0f172a !important;
-            border: 1px solid #334155 !important;
-            color: #fff !important;
-            border-radius: 0.5rem;
-        }
-
-        .ts-dropdown {
-            background-color: #1e293b !important;
-            border: 1px solid #334155 !important;
-            color: #fff !important;
-        }
-
-        .ts-dropdown .active {
-            background-color: #334155 !important;
-            color: #fff !important;
-        }
-
-        .ts-control .item {
-            background-color: #059669 !important;
-            color: #fff !important;
-            border-radius: 4px;
-        }
-
-        .ts-wrapper.multi .ts-control>div {
-            background-color: #059669 !important;
-            color: white !important;
-        }
-    </style>
-
-    <style>
-        /* 1. Supaya kursor jadi telunjuk saat hover di icon Kalender & Jam */
-        input[type="date"]::-webkit-calendar-picker-indicator,
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-        }
-
-        /* 2. MODE GELAP */
-        input[type="date"],
-        input[type="time"] {
-            color-scheme: dark;
-        }
-
-        /* 3. MODE TERANG (Saat ada class 'light-mode') */
-        body.light-mode input[type="date"],
-        body.light-mode input[type="time"] {
-            color-scheme: light;
-        }
-    </style>
-</head> -->
-
 <body class="bg-slate-900 text-slate-200 font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
 
@@ -163,29 +90,10 @@ $extraHead = '
                                         <label class="block text-xs text-slate-400 mb-1">Search Daily Report</label>
                                         <div class="relative w-full">
                                             <i class="fas fa-search absolute left-3 top-3 text-slate-500 text-sm"></i>
-                                            <input id="searchInput" type="text" placeholder="Search Daily Activity..." class="w-full bg-slate-800 border border-slate-700 text-white pl-9 pr-4 py-2.5 rounded-lg focus:border-emerald-500 focus:outline-none transition text-sm" autocomplete="off">
+                                            <input id="searchInput" type="text" placeholder="Search Daily Activity..." class="w-full bg-slate-800 border border-slate-700 text-white pl-9 pr-4 py-2.5 rounded-lg focus:border-cyan-500 focus:outline-none transition text-sm" autocomplete="off">
                                         </div>
                                     </div>
 
-                                    <!-- <div class="flex items-end gap-2 w-full md:w-auto">
-                                        <div class="flex-1 md:flex-none">
-                                            <label class="block text-xs text-slate-400 mb-1">From</label>
-                                            <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
-                                                <i class="far fa-calendar-alt text-slate-400 mr-2 hidden md:block"></i>
-                                                <input type="date" id="startDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 appearance-none">
-                                            </div>
-                                        </div>
-
-                                        <span class="text-slate-500 mb-3">-</span>
-
-                                        <div class="flex-1 md:flex-none">
-                                            <label class="block text-xs text-slate-400 mb-1">To</label>
-                                            <div class="flex items-center bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 w-full">
-                                                <i class="far fa-calendar-alt text-slate-400 mr-2 hidden md:block"></i>
-                                                <input type="date" id="endDate" class="bg-transparent text-white text-sm focus:outline-none placeholder-slate-500 w-full md:w-32 appearance-none">
-                                            </div>
-                                        </div>
-                                    </div> -->
                                     <div class="flex items-end gap-2 w-full md:w-auto mt-4 xl:mt-0">
     
                                         <div class="flex-1 md:flex-none">
@@ -208,7 +116,7 @@ $extraHead = '
                                 </div>
                                 
                                 <div class="flex flex-col md:flex-row gap-2 w-full xl:w-auto mt-4 xl:mt-0">
-                                        <form method="GET" action="" class="w-full md:w-32">
+                                    <form method="GET" action="" class="w-full md:w-32">
                                         <label class="block text-xs text-slate-400 mb-1">Select Year</label>
                                             <select name="tahun" onchange="this.form.submit()" class="bg-slate-900 border border-slate-600 text-white text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5">
                                             <?php
@@ -229,7 +137,7 @@ $extraHead = '
                                         <i class="fas fa-file-excel"></i> <span>Export Excel</span>
                                     </button>
 
-                                    <button class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 flex-1 xl:flex-none btn-input-laporan">
+                                    <button class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 flex-1 xl:flex-none btn-input-laporan">
                                         <i class="fas fa-plus"></i> Input Daily Activity
                                     </button>
                                 </div>
@@ -257,11 +165,6 @@ $extraHead = '
                                 <!-- PENGAMBILA DATA UNTUK TABEL DARI DATABASE ADA DISINI -->
                                 <tbody class="divide-y divide-slate-700/50" id="tableReportBody">
                                     <?php
-                                    // Query: Ambil data laporan, urutkan dari yang paling baru (DESC)
-                                    // $query = mysqli_query($conn, "SELECT * FROM tb_daily_reports ORDER BY date_log DESC, time_start DESC");
-                                    // $tahun_ini = date('Y');
-                                    // $query = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE YEAR(date_log) = '$tahun_ini' ORDER BY date_log DESC, time_start DESC");
-                                    
                                     // 2. Query dimodifikasi dengan filter WHERE YEAR(date_log) = ...
                                     $query = mysqli_query($conn, "SELECT * FROM tb_daily_reports 
                                     WHERE YEAR(date_log) = '$tahun_pilihan' 
@@ -300,10 +203,8 @@ $extraHead = '
                                     ?>
 
                                             <tr class="hover:bg-slate-800/50 transition border-b border-slate-800" data-date="<?php echo $row['date_log']; ?>">
-                                        <!-- <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500" data-date="<?php echo $row['date_log']; ?>"> -->
                                             <td class="px-6 py-4 text-center">
-                                                <!-- <button onclick="toggleDetail('lap<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none"> -->
-                                                <button data-toggle-id="lap<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
+                                                <button data-toggle-id="lap<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-cyan-400 hover:bg-cyan-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
                                                     <i class="fas fa-plus text-xs transition-transform" id="icon-lap<?php echo $id; ?>"></i>
                                                 </button>
                                             </td>
@@ -782,8 +683,6 @@ $extraHead = '
         // Kita simpan instance-nya di variabel global biar bisa di-clear saat edit
         var tomSelectPicCreate, tomSelectPicEdit;
 
-        // document.addEventListener('DOMContentLoaded', function() {
-        // document.addEventListener('turbo:load', function() {
         (function() {
             // Init TomSelect untuk Modal Create (Dashboard & Laporan)
             const configTom = { plugins: ['remove_button'], create: false, maxItems: 5, placeholder: "Pilih PIC..." };
@@ -854,26 +753,6 @@ $extraHead = '
                 if (result.isConfirmed) window.location.href = 'delete/delete_report.php?id=' + id;
             });
         }
-
-        // --- FUNGSI TOGGLE DETAIL ROW ---
-        // window.toggleDetail = function(rowId) {
-        //     const detailRow = document.getElementById('detail-' + rowId);
-        //     const icon = document.getElementById('icon-' + rowId);
-        //     if (detailRow && icon) {
-        //         const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-        //         if (isHidden) {
-        //             detailRow.classList.remove('hidden');
-        //             detailRow.style.display = 'table-row';
-        //             icon.classList.replace('fa-plus', 'fa-minus');
-        //             icon.style.transform = 'rotate(180deg)';
-        //         } else {
-        //             detailRow.classList.add('hidden');
-        //             detailRow.style.display = 'none';
-        //             icon.classList.replace('fa-minus', 'fa-plus');
-        //             icon.style.transform = 'rotate(0deg)';
-        //         }
-        //     }
-        // };
 
         // --- FUNGSI DOWNLOAD EXCEL ---
         function downloadExcel() {

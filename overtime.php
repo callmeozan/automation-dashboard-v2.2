@@ -37,7 +37,7 @@ $pageTitle = "Overtime Request";
 // [SLOT HEADER] Tombol Request Overtime
 $extraMenu = '
     <div class="flex items-center gap-3">
-        <button onclick="openModal(\'modalOvertime\')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+        <button onclick="openModal(\'modalOvertime\')" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-1.5 rounded-full text-sm font-medium transition shadow-lg shadow-cyan-600/20 flex items-center gap-2">
             <i class="fas fa-plus"></i> <span class="hidden sm:inline">Request Overtime</span>
         </button>
     </div>';
@@ -110,11 +110,11 @@ $extraHead = '
                 <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                     
                     <div class="relative group w-full sm:w-64">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 group-focus-within:text-emerald-500 transition">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 group-focus-within:text-cyan-500 transition">
                             <i class="fas fa-search text-sm"></i>
                         </span>
                         <input type="text" id="searchInput" placeholder="Search Name, SPK..." 
-                            class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 text-white rounded-xl text-sm focus:border-emerald-500 outline-none transition shadow-sm">
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 text-white rounded-xl text-sm focus:border-cyan-500 outline-none transition shadow-sm">
                     </div>
 
                     <div class="flex gap-2 w-full sm:w-auto">
@@ -125,7 +125,7 @@ $extraHead = '
                         </button>
 
                         <button onclick="openModal('modalOvertime')" 
-                            class="flex-[1.5] sm:flex-none bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 text-nowrap">
+                            class="flex-[1.5] sm:flex-none bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg shadow-cyan-600/20 flex items-center justify-center gap-2 text-nowrap">
                             <i class="fas fa-plus"></i>
                             <span>Request <span class="hidden xs:inline">Overtime</span></span>
                         </button>
@@ -329,11 +329,11 @@ $extraHead = '
                                         $isMe = ($row['user_id'] == $_SESSION['user_id']);
                                         $rowClass = $isMe ? "bg-slate-800/50" : "";
                                 ?>
-                                        <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500 <?php echo $rowClass; ?>">
+                                        <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-cyan-500 <?php echo $rowClass; ?>">
                                             
                                             <td class="px-6 py-4 text-center">
                                                 <!-- <button onclick="toggleDetail('ot<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none"> -->
-                                                <button data-toggle-id="ot<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
+                                                <button data-toggle-id="ot<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-cyan-400 hover:bg-cyan-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
                                                     <i class="fas fa-plus text-xs transition-transform" id="icon-ot<?php echo $id; ?>"></i>
                                                 </button>
                                             </td>
@@ -862,37 +862,6 @@ $extraHead = '
                 showCancelButton: true, background: '#1e293b', color: '#fff', confirmButtonColor: '#ef4444'
             }).then((r) => { if(r.isConfirmed) window.location.href = 'process/process_delete_ot.php?id='+id; });
         }
-
-        // --- FUNGSI TOGGLE DETAIL (VERSI ANTI-BENTROK PAGINATION) ---
-        // window.toggleDetail = function(rowId) {
-        //     const detailRow = document.getElementById('detail-' + rowId);
-        //     const icon = document.getElementById('icon-' + rowId);
-            
-        //     if (detailRow && icon) {
-        //         // Cek apakah sedang sembunyi (baik lewat class maupun inline style)
-        //         const isCurrentlyHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-
-        //         if (isCurrentlyHidden) {
-        //             // 1. Tampilkan baris (Hapus class dan paksa style table-row)
-        //             detailRow.classList.remove('hidden');
-        //             detailRow.style.setProperty('display', 'table-row', 'important'); 
-                    
-        //             // 2. Ubah Icon jadi Minus (-)
-        //             icon.classList.remove('fa-plus');
-        //             icon.classList.add('fa-minus');
-        //             icon.style.transform = 'rotate(180deg)';
-        //         } else {
-        //             // 1. Sembunyikan baris (Tambah class dan paksa style none)
-        //             detailRow.classList.add('hidden');
-        //             detailRow.style.display = 'none';
-                    
-        //             // 2. Ubah Icon jadi Plus (+)
-        //             icon.classList.remove('fa-minus');
-        //             icon.classList.add('fa-plus');
-        //             icon.style.transform = 'rotate(0deg)';
-        //         }
-        //     }
-        // }
 
         // --- FUNGSI TUTUP MODAL EDIT ---
         function closeEditModal() {

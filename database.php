@@ -1,8 +1,6 @@
 <?php
 include 'layouts/auth_and_config.php';
 
-// ... (Query totalAssets yang tadi) ...
-
 $pageTitle = "Database Inventory";
 
 // Kita bungkus CSS print Bapak ke dalam variable ini
@@ -54,7 +52,7 @@ $extraHead = '
          <!-- HALAMAN UTAMA DATABASE -->
             <div class="p-8 space-y-8 fade-in">
                 <div class="flex border-b border-slate-700 mb-6">
-                    <a href="database.php" class="px-6 py-3 text-sm font-bold text-emerald-400 border-b-2 border-emerald-400">
+                    <a href="database.php" class="px-6 py-3 text-sm font-bold text-cyan-400 border-b-2 border-cyan-400">
                         <i class="fas fa-microchip mr-2"></i> Machine & Assets
                     </a>
                     <a href="master_items.php" class="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white hover:border-slate-500 border-b-2 border-transparent transition">
@@ -66,7 +64,7 @@ $extraHead = '
                     <div class="flex flex-1 gap-2">
                         <div class="relative flex-1 max-w-md">
                             <i class="fas fa-search absolute left-3 top-3 text-slate-500 text-sm"></i>
-                            <input id="searchInput" type="text" placeholder="Search Part Code, Name, or Machine..." class="w-full bg-slate-800 border border-slate-700 text-white pl-9 pr-4 py-2.5 rounded-lg focus:border-emerald-500 focus:outline-none transition text-sm" autocomplete="off">
+                            <input id="searchInput" type="text" placeholder="Search Part Code, Name, or Machine..." class="w-full bg-slate-800 border border-slate-700 text-white pl-9 pr-4 py-2.5 rounded-lg focus:border-cyan-500 focus:outline-none transition text-sm" autocomplete="off">
                         </div>
                     </div>
 
@@ -74,7 +72,7 @@ $extraHead = '
                         <button onclick="downloadExcel()" class="bg-slate-800 hover:bg-green-700 text-slate-300 px-4 py-2.5 rounded-lg border border-slate-700 text-sm transition">
                             <i class="fas fa-file-excel mr-1"></i> Export Excel
                         </button>
-                        <button id="btnAddItem" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+                        <button id="btnAddItem" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20 flex items-center gap-2">
                             <i class="fas fa-plus"></i> Add New Asset
                         </button>
                     </div>
@@ -108,10 +106,10 @@ $extraHead = '
                                     $scan  = explode(' - ', $row['scanner_info']);
                                 ?>
 
-                                    <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-emerald-500">
+                                    <tr class="hover:bg-slate-700/20 transition group border-l-4 border-transparent hover:border-cyan-500">
                                         <td class="px-6 py-4 text-center">
                                             <!-- <button onclick="toggleDetail('<?php echo $id; ?>')" class="w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none"> -->
-                                            <button data-toggle-id="<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-emerald-400 hover:bg-emerald-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
+                                            <button data-toggle-id="<?php echo $id; ?>" class="btn-toggle-row w-6 h-6 rounded-full bg-slate-700 text-cyan-400 hover:bg-cyan-600 hover:text-white transition flex items-center justify-center focus:outline-none">    
                                                 <i class="fas fa-plus text-xs transition-transform" id="icon-<?php echo $id; ?>"></i>
                                             </button>
                                         </td>
@@ -535,8 +533,6 @@ $extraHead = '
         window.currentSearchKeyword = window.currentSearchKeyword || "";
         window.allRows = window.allRows || [];
 
-        // document.addEventListener('DOMContentLoaded', function() {
-        // document.addEventListener('turbo:load', function() {
         (function() {
             if (document.documentElement.hasAttribute("data-turbo-preview")) return;
             if (!window.location.pathname.includes('database.php')) return;
@@ -572,27 +568,6 @@ $extraHead = '
 
             renderTable();
         })();
-
-        // --- A. EXPAND ROW (TOGGLE DETAIL) ---
-        // window.toggleDetail = function(rowId) {
-        //     const detailRow = document.getElementById('detail-' + rowId);
-        //     const icon = document.getElementById('icon-' + rowId);
-
-        //     if (detailRow && icon) {
-        //         const isHidden = detailRow.classList.contains('hidden') || detailRow.style.display === 'none';
-        //         if (isHidden) {
-        //             detailRow.classList.remove('hidden');
-        //             detailRow.style.display = 'table-row';
-        //             icon.classList.replace('fa-plus', 'fa-minus');
-        //             icon.style.transform = 'rotate(180deg)';
-        //         } else {
-        //             detailRow.classList.add('hidden');
-        //             detailRow.style.display = 'none';
-        //             icon.classList.replace('fa-minus', 'fa-plus');
-        //             icon.style.transform = 'rotate(0deg)';
-        //         }
-        //     }
-        // };
 
         // --- B. EDIT ASSET ---
         function editAsset(id, plant, area, machine, comm, plc_hw, plc_sw, plc_ver, hmi_hw, hmi_sw, hmi_ver, drive, ipc, scan) {

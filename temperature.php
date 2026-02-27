@@ -40,7 +40,7 @@ $urlParams = ($search != '') ? "&search=" . urlencode($search) : "";
 $extraMenu = '
     <div class="flex items-center gap-4">
         <div class="text-xs text-slate-400 hidden sm:block border-r border-slate-700 pr-4">
-            Total Items: <span class="text-emerald-400 font-bold">' . number_format($totalData) . '</span>
+            Total Items: <span class="text-cyan-400 font-bold">' . number_format($totalData) . '</span>
         </div>';
 
 $extraHead = '
@@ -97,7 +97,7 @@ $extraHead = '
 
                     <div class="border-b border-slate-700">
                         <nav class="-mb-px flex gap-8" aria-label="Tabs">
-                            <a href="temperature.php" class="border-emerald-500 text-emerald-400 whitespace-nowrap border-b-2 py-3 px-1 text-sm font-bold flex items-center gap-2">
+                            <a href="temperature.php" class="border-cyan-500 text-cyan-400 whitespace-nowrap border-b-2 py-3 px-1 text-sm font-bold flex items-center gap-2">
                                 <i class="fas fa-thermometer-half"></i> Temperature
                             </a>
 

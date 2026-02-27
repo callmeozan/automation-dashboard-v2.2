@@ -7,8 +7,14 @@
     transition: all 0.2s;
     margin-bottom: 0.5rem; /* Memberi jarak antar menu */
 }
-.nav-item:hover { background-color: #1e293b; color: white; }
-.nav-item.active {
-    background-color: rgba(5, 150, 105, 0.2); color: #34d399;
-    border: 1px solid rgba(5, 150, 105, 0.3);
+
+ .nav-item.active {
+    background-color: rgba(6, 182, 212, 0.15) !important;
+    color: #22d3ee !important;
+    border: 1px solid rgba(6, 182, 212, 0.3) !important;
+}
+
+/* Tambahkan juga efek hover-nya sekalian biar mantap */
+.nav-item.active:hover {
+    background-color: rgba(6, 182, 212, 0.25) !important;
 }

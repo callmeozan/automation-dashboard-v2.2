@@ -58,7 +58,7 @@ if ($showNotif && isset($conn)) { // Pastikan koneksi $conn ada
                     <div class="max-h-80 overflow-y-auto custom-scroll">
                         <?php if ($totalNotif == 0): ?>
                             <div class="px-4 py-6 text-center text-slate-500">
-                                <i class="fas fa-check-circle text-2xl mb-2 text-emerald-500/50"></i>
+                                <i class="fas fa-check-circle text-2xl mb-2 text-cyan-500/50"></i>
                                 <p class="text-xs">Semua sistem aman.</p>
                             </div>
                         <?php else: ?>

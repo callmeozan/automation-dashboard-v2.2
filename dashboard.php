@@ -88,8 +88,8 @@ $extraHead = '
          <?php include 'layouts/sidebar.php'; ?>
         <main class="flex-1 flex flex-col overflow-y-auto relative pb-24" id="main-content">
 
-            <!-- HEADER ADA DISINI -->
-            <?php include 'layouts/header.php'; ?>
+        <!-- HEADER ADA DISINI -->
+         <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 space-y-8 fade-in">
                 <!-- PRESENTATION MODE ADA DISNI -->
@@ -165,7 +165,7 @@ $extraHead = '
                     <div class="lg:col-span-2 bg-slate-800 rounded-xl border border-slate-700 p-6 relative overflow-hidden">
                         <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
                         <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
-                            <i class="fas fa-search text-emerald-400"></i> Search Project On Going
+                            <i class="fas fa-search text-cyan-400"></i> Search Project On Going
                         </h3>
 
                         <div class="flex gap-2">
@@ -174,7 +174,7 @@ $extraHead = '
                                 <input type="text"
                                     id="searchInput"
                                     placeholder="Type to filter projects..."
-                                    class="w-full bg-slate-900 border border-slate-600 text-white pl-10 pr-4 py-3 rounded-lg focus:border-emerald-500 focus:outline-none transition"
+                                    class="w-full bg-slate-900 border border-slate-600 text-white pl-10 pr-4 py-3 rounded-lg focus:border-cyan-500 focus:outline-none transition"
                                     autocomplete="off">
                             </div>
                             <button class="bg-slate-700 text-white px-6 py-3 rounded-lg border border-slate-600 hover:bg-slate-600 transition">
@@ -201,13 +201,13 @@ $extraHead = '
                     <!-- ACTIVE TAB ADA DISINI -->
                     <div class="flex border-b border-slate-700">
                         <button @click="activeTab = 'project'"
-                            :class="activeTab === 'project' ? 'text-white border-b-2 border-emerald-500 bg-slate-700/50' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'"
+                            :class="activeTab === 'project' ? 'text-white border-b-2 border-cyan-500 bg-slate-700/50' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'"
                             class="px-6 py-4 text-sm font-semibold transition-all flex-1 md:flex-none text-left focus:outline-none">
                             <i class="fas fa-rocket mr-2"></i> On Going Projects
                         </button>
 
                         <button @click="activeTab = 'report'"
-                            :class="activeTab === 'report' ? 'text-white border-b-2 border-emerald-500 bg-slate-700/50' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'"
+                            :class="activeTab === 'report' ? 'text-white border-b-2 border-cyan-500 bg-slate-700/50' : 'text-slate-400 hover:text-white hover:bg-slate-700/30'"
                             class="px-6 py-4 text-sm font-semibold transition-all flex-1 md:flex-none text-left focus:outline-none">
                             <i class="fas fa-user-clock mr-2"></i> My Daily Report
                         </button>
@@ -713,8 +713,6 @@ window.currentPage = window.currentPage || 1;
 window.currentSearchKeyword = window.currentSearchKeyword || "";
 window.allRows = window.allRows || [];
 
-        // document.addEventListener('DOMContentLoaded', function() {
-        // document.addEventListener('turbo:load', function() {
         (function() {
             if (document.documentElement.hasAttribute("data-turbo-preview")) return;
             if (!window.location.pathname.includes('dashboard.php')) return;
@@ -887,6 +885,5 @@ window.allRows = window.allRows || [];
             });
         }
     </script>
-
     </body>
 </html>

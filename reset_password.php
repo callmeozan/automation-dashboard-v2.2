@@ -74,7 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <label class="block text-xs text-slate-400 mb-1">Nama Lengkap (Sesuai Database)</label>
                 <input type="text" name="fullname" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none" placeholder="Contoh: Budi Santoso">
             </div>
-            <button type="submit" name="verify_user" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-emerald-600/20">
+            <button type="submit" name="verify_user" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20">
                 Verifikasi Saya
             </button>
             <div class="text-center mt-4">

@@ -1,5 +1,5 @@
 <!-- username = admin -->
-<!-- password = admin123 -->
+<!-- password = admin85296 -->
 <?php
 session_start();
 // Kalau sudah login, lempar langsung ke dashboard
@@ -32,6 +32,11 @@ if (isset($_SESSION['user_id'])) {
 
         .animation-delay-2000 {
             animation-delay: 2s;
+        }
+
+        html, body {
+            overflow-x: hidden;
+            max-width: 100vw;
         }
 
         @keyframes blob {
@@ -70,68 +75,66 @@ if (isset($_SESSION['user_id'])) {
         </script>
 </head>
 
-<body class="bg-slate-950 text-slate-200 font-sans antialiased h-screen flex items-center justify-center relative overflow-hidden">
+<!-- <body class="bg-slate-950 text-slate-200 font-sans antialiased h-screen flex items-center justify-center relative overflow-hidden"> -->
+<body class="bg-slate-950 text-slate-200 font-sans antialiased min-h-screen flex items-center justify-center relative overflow-x-hidden pb-32 md:pb-0 pt-4 md:pt-0">
 
-    <div class="absolute top-0 -left-4 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-    <div class="absolute top-0 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div class="absolute top-0 -left-4 w-72 h-72 bg-cyan-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute top-0 -right-4 w-72 h-72 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
-    <div class="relative z-10 w-full max-w-md p-8 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl">
-
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4 border border-slate-700 shadow-lg shadow-emerald-500/10 overflow-hidden p-1.5">
-                <img src="image/gajah_tunggal.png" alt="Logo Dept" class="w-full h-full object-cover rounded-full">
+    <div class="relative z-10 w-[88%] mx-auto sm:w-full max-w-md p-6 sm:p-8 bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl">
+        <div class="text-center mb-8 flex flex-col items-center">
+            
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-950 mb-4 border-2 border-slate-700 shadow-[0_0_20px_rgba(6,182,212,0.2)] overflow-hidden p-3 transition-transform hover:scale-105 cursor-pointer">
+                <img src="image/gajah_tunggal.png" alt="Logo Dept" class="w-full h-full object-contain">
             </div>
-            <h1 class="text-2xl font-bold text-white tracking-wide">JIS <span class="text-emerald-400">PORTAL.</span></h1>
-            <p class="text-sm text-slate-500 mt-1">Automation & Management System</p>
+            <h1 class="text-3xl font-extrabold text-white tracking-wider mt-2">JIS <span class="text-cyan-400">PORTAL.</span></h1>
+            <p class="text-sm text-slate-400 mt-1 font-medium">Automation & Management System</p>
         </div>
 
-        <!-- FORM LOGIN ADA DISINI -->
-        <form action="auth.php" method="POST" class="space-y-6" id="loginForm">
+        <form action="auth.php" method="POST" class="space-y-5" id="loginForm">
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">ID Number</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-user text-slate-500"></i>
+                <label class="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">ID Number</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-cyan-400">
+                        <i class="fas fa-user text-slate-500 group-focus-within:text-cyan-400 transition-colors"></i>
                     </div>
-                    <input type="text" name="username" class="block w-full pl-10 pr-3 py-3 border border-slate-700 rounded-lg leading-5 bg-slate-950 text-slate-300 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:text-sm transition" placeholder="Enter your ID Number">
+                    <input type="text" name="username" class="block w-full pl-11 pr-3 py-3 border border-slate-700 rounded-xl leading-5 bg-slate-950/50 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm transition-all" placeholder="Enter your ID Number" autocomplete="off" required>
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">Password</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-lock text-slate-500"></i>
+                <label class="block text-[11px] font-bold text-slate-400 mb-1.5 uppercase tracking-widest">Password</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-cyan-400">
+                        <i class="fas fa-lock text-slate-500 group-focus-within:text-cyan-400 transition-colors"></i>
                     </div>
-                    <input type="password" name="password" class="block w-full pl-10 pr-3 py-3 border border-slate-700 rounded-lg leading-5 bg-slate-950 text-slate-300 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 sm:text-sm transition" placeholder="••••••••">
+                    <input type="password" name="password" class="block w-full pl-11 pr-3 py-3 border border-slate-700 rounded-xl leading-5 bg-slate-950/50 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 sm:text-sm transition-all" placeholder="••••••••" required>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <!-- <input id="remember_me" type="checkbox" class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-slate-700 rounded bg-slate-800"> -->
-                    <!-- <label for="remember_me" class="ml-2 block text-sm text-slate-400">Ingat Saya</label> -->
-                </div>
+            <div class="flex items-center justify-end mt-2">
                 <div class="text-sm">
-                    <!-- <a href="#" class="font-medium text-emerald-500 hover:text-emerald-400">Lupa Password?</a> -->
-                    <!-- <a href="javascript:void(0)" onclick="forgotPassword()" class="font-medium text-emerald-500 hover:text-emerald-400 transition">Forgot Password?</a> -->
-                    <a href="reset_password.php" class="font-medium text-emerald-500 hover:text-emerald-400 transition">Forgot Password?</a>
+                    <a href="reset_password.php" class="font-semibold text-cyan-500 hover:text-cyan-400 transition-colors">Forgot Password?</a>
                 </div>
             </div>
 
-            <div>
-                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-emerald-500 transition shadow-lg shadow-emerald-600/20">
-                    LOGIN<i class="fas fa-arrow-right ml-2 mt-1"></i>
+            <div class="pt-2">
+                <button type="submit" class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-cyan-500 transition-all shadow-lg shadow-cyan-600/25 active:scale-[0.98]">
+                    LOGIN <i class="fas fa-sign-in-alt ml-2"></i>
                 </button>
             </div>
         </form>
 
-        <!-- FOOTER FORM LOGIN -->
-        <div class="mt-6 text-center">
-            <p class="text-xs text-slate-600">
-                &copy; <?php echo date('Y'); ?> JIS Automation Dept. Internal Use Only.
+        <div class="mt-8 pt-6 border-t border-slate-800 text-center">
+            <p class="text-xs text-slate-500 font-medium">
+                &copy; <?php echo date('Y'); ?> JIS Automation Dept.<br>Internal Use Only.
             </p>
+            
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-800/40 border border-slate-700/50 rounded">
+                <i class="fas fa-rocket text-cyan-500"></i>
+                <span>V2.0 <span class="text-slate-500 font-medium capitalize">| New Server</span></span>
+            </div>
         </div>
     </div>
 
@@ -139,13 +142,10 @@ if (isset($_SESSION['user_id'])) {
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', function(e) {
-
                 const btn = this.querySelector('button[type="submit"]');
-                const originalText = btn.innerHTML;
-
-                // Ubah tampilan tombol biar seolah-olah mikir
-                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Verifying...';
-                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                // Efek loading saat ditekan
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Authenticating...';
+                btn.classList.add('opacity-80', 'cursor-not-allowed');
             });
         }
     </script>
@@ -158,12 +158,14 @@ if (isset($_SESSION['user_id'])) {
                 icon: 'error',
                 title: 'Akses Ditolak!',
                 text: 'ID (NIP) atau Password yang Anda masukkan salah.',
-                background: '#1e293b', 
-                color: '#fff', 
+                background: '#0f172a', 
+                color: '#f8fafc', 
                 confirmButtonColor: '#ef4444',
-                confirmButtonText: 'Coba Lagi'
+                confirmButtonText: 'Coba Lagi',
+                customClass: {
+                    popup: 'border border-slate-700 rounded-2xl'
+                }
             }).then(() => {
-                // Hapus parameter ?error=1 dari URL agar bersih
                 window.history.replaceState(null, null, window.location.pathname);
             });
         </script>
@@ -171,81 +173,60 @@ if (isset($_SESSION['user_id'])) {
     }
     ?>
 
-    <!-- INSTAL POP UP DISINI -->
-<div id="install-popup" class="hidden fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white p-4 rounded-xl shadow-2xl border border-slate-100 z-[9999] flex flex-col gap-4 animate-bounce-in">
-    
-    <div class="flex items-start gap-4">
-        <div class="bg-blue-50 p-2 rounded-lg shrink-0">
-            <img src="image/gajah_tunggal_biru.png" alt="App Logo" class="w-10 h-10 object-contain">
+    <div id="install-popup" class="hidden fixed bottom-6 left-0 right-0 mx-auto w-[92%] max-w-sm md:left-auto md:right-6 md:mx-0 md:max-w-none md:w-96 bg-white p-5 rounded-2xl shadow-2xl border border-slate-200 z-[9999] flex-col gap-4 animate-bounce-in">
+        <div class="flex items-start gap-4">
+            <div class="bg-blue-50 p-2.5 rounded-xl shrink-0">
+                <img src="image/gajah_tunggal_biru.png" alt="App Logo" class="w-10 h-10 object-contain">
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-slate-800">Install Automation Dashboard App</h3>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Pasang aplikasi ini di layar utama agar akses lebih cepat & bisa jalan offline! 🚀
+                </p>
+            </div>
         </div>
-        <div>
-            <h3 class="text-sm font-bold text-slate-800">Install Automation Dashboard App</h3>
-            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                Pasang aplikasi ini di layar utama agar akses lebih cepat & bisa jalan offline! 🚀
-            </p>
+
+        <div class="flex gap-3 mt-1">
+            <button id="btn-batal" class="flex-1 py-2.5 px-3 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+                Nanti Saja
+            </button>
+            <button id="btn-install-app" class="flex-1 py-2.5 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2">
+                <i class="fas fa-download"></i> Install Sekarang
+            </button>
         </div>
     </div>
 
-    <div class="flex gap-2">
-        <button id="btn-batal" class="flex-1 py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-            Nanti Saja
-        </button>
-        <button id="btn-install-app" class="flex-1 py-2 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-200 transition flex items-center justify-center gap-2">
-            <i class="fas fa-download"></i> Install Sekarang
-        </button>
-    </div>
-</div>
+    <script>
+        let deferredPrompt; 
+        const popup = document.getElementById('install-popup');
+        const btnInstall = document.getElementById('btn-install-app');
+        const btnBatal = document.getElementById('btn-batal');
 
-<script>
-    let deferredPrompt; // Wadah untuk menyimpan event install bawaan browser
-    const popup = document.getElementById('install-popup');
-    const btnInstall = document.getElementById('btn-install-app');
-    const btnBatal = document.getElementById('btn-batal');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            popup.classList.remove('hidden');
+            popup.classList.add('flex'); 
+        });
 
-    // 1. Dengar Event "beforeinstallprompt"
-    // Browser berteriak: "Hei, web ini bisa diinstall lho!"
-    window.addEventListener('beforeinstallprompt', (e) => {
-        // Tahan dulu, jangan biarkan browser kasih notifikasi default yang kecil
-        e.preventDefault();
-        
-        // Simpan event-nya ke variabel, biar bisa kita panggil nanti saat tombol diklik
-        deferredPrompt = e;
-        
-        // Munculkan Pop-up buatan kita
-        popup.classList.remove('hidden');
-        popup.classList.add('flex'); // Pakai flex biar rapi
-    });
+        btnInstall.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                popup.classList.add('hidden');
+            }
+        });
 
-    // 2. Jika Tombol "Install Sekarang" Diklik
-    btnInstall.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            // Panggil prompt asli browser lewat tombol kita
-            deferredPrompt.prompt();
-            
-            // Tunggu user klik "Accept" atau "Cancel"
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User memilih: ${outcome}`);
-            
-            // Hapus event karena sudah dipakai (cuma bisa sekali pakai)
-            deferredPrompt = null;
-            
-            // Sembunyikan pop-up
+        btnBatal.addEventListener('click', () => {
             popup.classList.add('hidden');
-        }
-    });
+        });
 
-    // 3. Jika Tombol "Nanti Saja" Diklik
-    btnBatal.addEventListener('click', () => {
-        popup.classList.add('hidden');
-    });
-
-    // 4. Cek kalau user sudah install, sembunyikan popup (Backup Logic)
-    window.addEventListener('appinstalled', () => {
-        popup.classList.add('hidden');
-        deferredPrompt = null;
-        console.log('Aplikasi berhasil diinstall!');
-    });
-</script>
+        window.addEventListener('appinstalled', () => {
+            popup.classList.add('hidden');
+            deferredPrompt = null;
+        });
+    </script>
 </body>
 
 </html>
