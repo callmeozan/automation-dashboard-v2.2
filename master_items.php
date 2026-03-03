@@ -127,8 +127,22 @@ $extraHead = '
                 </div>
 
                 <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-lg">
+                    
+                    <div class="p-4 border-b border-slate-700/50 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-800/50">
+                        <h3 class="text-white font-semibold text-sm">
+                            <i class="fas fa-list text-cyan-500 mr-2"></i> Master Items
+                        </h3>
+                        
+                        <?php if (!empty($_GET['search'])): ?>
+                        <div class="relative w-full sm:w-64 animate-fade-in">
+                            <i class="fas fa-filter absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                            <input type="text" id="liveTableFilter" placeholder="Live filter di halaman ini..." class="w-full bg-slate-900 border border-slate-700 text-slate-300 pl-8 pr-3 py-2 rounded-md focus:border-cyan-500 focus:outline-none transition text-xs placeholder-slate-600" autocomplete="off">
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm text-slate-400">
+                        <table class="w-full text-left text-sm text-slate-400" id="masterItemTable">
                             <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
                                 <tr>
                                     <th class="px-6 py-4 w-48">Item Code</th>
@@ -256,6 +270,44 @@ $extraHead = '
     <?php include 'layouts/scripts.php'; ?>
 
     <script>
+        (function() {
+            const liveFilterInput = document.getElementById('liveTableFilter');
+            const tableToFilter = document.getElementById('masterItemTable');
+
+            if (liveFilterInput && tableToFilter) {
+                console.log("✅ Satpam Live Filter (Turbo-Safe) Siap Bertugas!");
+
+                // 1. Matikan fungsi Enter
+                liveFilterInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); 
+                    }
+                });
+
+                // 2. Fungsi Live Filter
+                liveFilterInput.addEventListener('input', function() {
+                    const filterValue = this.value.toLowerCase();
+                    
+                    // KITA AMBIL SEMUA BARIS (TR) DI DALAM BODY TABEL
+                    const rows = tableToFilter.querySelectorAll('tbody tr');
+                    
+                    rows.forEach(row => {
+                        // Skip kalau ini adalah baris pesan "Tidak ada data item"
+                        if(row.innerText.toLowerCase().includes('tidak ada data item')) return;
+
+                        const rowText = row.textContent.toLowerCase();
+                        
+                        // Cek kecocokan
+                        if (rowText.includes(filterValue)) {
+                            row.style.display = ''; // Munculkan
+                        } else {
+                            row.style.display = 'none'; // Sembunyikan
+                        }
+                    });
+                });
+            }
+        })();
+        
     // --- A. FUNGSI EDIT ITEM (Isi Modal Edit) ---
         function editItem(id, code, name, brand, spec, loc, stock, unit, cat, img) {
             document.getElementById('edit_id').value = id;
