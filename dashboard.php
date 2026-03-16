@@ -243,6 +243,9 @@ $extraHead = '
                                     $queryProj = mysqli_query($conn, "SELECT * FROM tb_projects WHERE status='In Progress' $filter ORDER BY due_date ASC");
                                     if (mysqli_num_rows($queryProj) > 0) {
                                         while ($row = mysqli_fetch_assoc($queryProj)) {
+                                            $safe_name = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['project_name']));
+                                            $safe_desc = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['description']));
+                                            $safe_act  = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['activity']));
                                             // Logic Warna Activity
                                             $act = strtolower($row['activity']);
                                             $actColor = 'text-slate-300';
@@ -268,7 +271,16 @@ $extraHead = '
                                                 <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
                                                     <td class="px-6 py-4 text-center">
                                                         <div class="flex items-center justify-center gap-3 transition">
-                                                            <button onclick="editProject('<?php echo $row['project_id']; ?>','<?php echo htmlspecialchars($row['project_name'], ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['description'], ENT_QUOTES); ?>','<?php echo $row['due_date']; ?>','<?php echo htmlspecialchars($row['category_badge'], ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['team_members'], ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>','<?php echo htmlspecialchars($row['plant'], ENT_QUOTES); ?>','<?php echo $row['status']; ?>')" class="text-slate-400 hover:text-blue-400 transition"><i class="fas fa-pen"></i></button>
+                                                            <button onclick="editProject('<?php echo $row['project_id']; ?>',
+                                                            '<?php echo htmlspecialchars($safe_name, ENT_QUOTES); ?>',
+                                                            '<?php echo htmlspecialchars($safe_desc, ENT_QUOTES); ?>',
+                                                            '<?php echo $row['due_date']; ?>',
+                                                            '<?php echo htmlspecialchars($row['category_badge'], ENT_QUOTES); ?>',
+                                                            '<?php echo htmlspecialchars($row['team_members'], ENT_QUOTES); ?>',
+                                                            '<?php echo htmlspecialchars($safe_act, ENT_QUOTES); ?>',
+                                                            '<?php echo htmlspecialchars($row['plant'], ENT_QUOTES); ?>',
+                                                            '<?php echo $row['status']; ?>')" class="text-slate-400 hover:text-blue-400 transition">
+                                                            <i class="fas fa-pen"></i></button>
                                                             <button onclick="confirmDelete(<?php echo $row['project_id']; ?>)" class="text-slate-400 hover:text-red-400 transition"><i class="fas fa-trash"></i></button>
                                                         </div>
                                                     </td>
@@ -858,9 +870,16 @@ window.allRows = window.allRows || [];
         // --- 2. FUNGSI EDIT & DELETE (TETAP DISINI) ---
         function editProject(id, name, desc, date, cat, team, act, plant, status) {
             document.getElementById('edit_id').value = id;
-            document.getElementById('edit_name').value = name;
-            document.getElementById('edit_desc').value = desc;
+            
+            // 1. TAMBAHKAN SPLIT ENTER DI SINI:
+            document.getElementById('edit_name').value = name.split("_ENTER_").join("\n");
+            document.getElementById('edit_desc').value = desc.split("_ENTER_").join("\n");
+            
             document.getElementById('edit_date').value = date;
+            
+            // 2. TAMBAHKAN ISIAN YANG TERLEWAT DI DASHBOARD:
+            if (document.getElementById('edit_act')) document.getElementById('edit_act').value = act.split("_ENTER_").join(" ");
+            if (document.getElementById('edit_plant')) document.getElementById('edit_plant').value = plant;
             if (document.getElementById('edit_status')) document.getElementById('edit_status').value = status;
             
             if (typeof tomSelectEdit !== 'undefined' && tomSelectEdit) {

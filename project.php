@@ -187,6 +187,7 @@ $extraHead = '
                             <?php
                             $query = mysqli_query($conn, "SELECT * FROM tb_projects WHERE status='In Progress' ORDER BY due_date ASC");
                             while ($row = mysqli_fetch_assoc($query)) {
+                                $safe_desc = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['description']);
                                 $pct = $row['progress_percent'];
                                 $barColor = 'bg-blue-500';
                                 if ($pct > 75) $barColor = 'bg-emerald-500';
@@ -207,7 +208,7 @@ $extraHead = '
                                                     <button onclick="event.stopPropagation(); editProject(
                                                 '<?php echo $row['project_id']; ?>',
                                                 '<?php echo htmlspecialchars($row['project_name'], ENT_QUOTES); ?>',
-                                                '<?php echo htmlspecialchars($row['description'], ENT_QUOTES); ?>',
+                                                '<?php echo htmlspecialchars($safe_desc, ENT_QUOTES); ?>',
                                                 '<?php echo $row['due_date']; ?>',
                                                 '<?php echo htmlspecialchars($row['category_badge'], ENT_QUOTES); ?>',
                                                 '<?php echo htmlspecialchars($row['team_members'], ENT_QUOTES); ?>',
