@@ -12,23 +12,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $time_end   = $_POST['time_end'];
     $activity   = mysqli_real_escape_string($conn, $_POST['activity']);
 
-    // 2. Hitung Durasi Otomatis (Dalam Satuan Jam)
+    // 2. Hitung Durasi Cerdas (Dengan Deteksi Jumat)
     $start_ts = strtotime($time_start);
     $end_ts   = strtotime($time_end);
 
-    // Jika jam selesai lebih kecil dari jam mulai (misal lembur sampai pagi besok), tambah 24 jam
     if ($end_ts < $start_ts) {
         $end_ts += 24 * 60 * 60;
     }
 
-    // Hitung selisih detik dibagi 3600 untuk dapat jam (desimal)
-    $duration = ($end_ts - $start_ts) / 3600;
+    $durasi_kotor = ($end_ts - $start_ts) / 3600;
+    $nama_hari = date('l', strtotime($date_ot)); // Deteksi nama hari
 
-    if ($duration > 4) {
-        $duration = $duration - 1;
+    if ($durasi_kotor > 4) {
+        if ($nama_hari == 'Friday') {
+            $duration = $durasi_kotor - 1.5; // Jumat dipotong istirahat 1.5 jam
+        } else {
+            $duration = $durasi_kotor - 1.0; // Hari biasa dipotong istirahat 1 jam
+        }
+    } else {
+        $duration = $durasi_kotor;
+    }
+
+    // Safety Net: Maksimal 7 Jam
+    if ($duration > 7) {
+        $duration = 7.0;
     }
     
-    // Format jadi 1 angka di belakang koma (misal 2.5)
     $duration = number_format($duration, 1);
 
     // --- 3. PROSES UPLOAD EVIDENCE (BARU) ---

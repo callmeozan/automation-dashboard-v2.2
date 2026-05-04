@@ -320,7 +320,8 @@ $extraHead = '
                                 if (mysqli_num_rows($qHist) > 0) {
                                     while ($row = mysqli_fetch_assoc($qHist)) {
                                         $id = $row['ot_id'];
-                                        
+                                        $safe_act = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['activity']));
+
                                         // Warna Status
                                         $statusClass = "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
                                         if($row['status'] == 'Approved') $statusClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
@@ -376,7 +377,7 @@ $extraHead = '
                                                 if ($allowAccess) { 
                                                 ?>
                                                     <div class="flex items-center justify-center gap-2">
-                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['duration']; ?>', '<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($row['activity'], ENT_QUOTES); ?>')" class="bg-slate-700 hover:bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Edit Data">
+                                                        <button onclick="openEditModal('<?php echo $row['ot_id']; ?>','<?php echo $row['date_ot']; ?>','<?php echo $row['time_start']; ?>','<?php echo $row['time_end']; ?>','<?php echo $row['duration']; ?>', '<?php echo $row['spk_number']; ?>','<?php echo htmlspecialchars($safe_act, ENT_QUOTES); ?>')" class="bg-slate-700 hover:bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Edit Data">
                                                             <i class="fas fa-edit text-xs"></i>
                                                         </button>
                                                         <button onclick="confirmDeleteOt('<?php echo $row['ot_id']; ?>')" class="bg-slate-700 hover:bg-red-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Hapus Request">
@@ -401,7 +402,8 @@ $extraHead = '
                                                     
                                                     <div class="space-y-2 border-r border-slate-700 pr-4">
                                                         <h4 class="text-emerald-400 font-bold uppercase tracking-wider mb-2">📋 Aktivitas / Pekerjaan</h4>
-                                                        <p class="text-slate-300 bg-slate-900/50 p-3 rounded border border-slate-700/50 leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($row['activity']); ?></p>
+                                                        <p class="text-slate-300 bg-slate-900/50 p-3 rounded border border-slate-700/50 leading-relaxed whitespace-pre-wrap"><?php echo nl2br(htmlspecialchars($row['activity'])); ?></p>
+                                                        <!-- <p class="text-slate-300 bg-slate-900/50 p-3 rounded border border-slate-700/50 leading-relaxed whitespace-pre-wrap"><?php echo htmlspecialchars($row['activity']); ?></p> -->
                                                     </div>
 
                                                     <div class="space-y-2">
@@ -489,7 +491,7 @@ $extraHead = '
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Tanggal</label>
-                            <input type="date" name="date_ot" value="<?php echo date('Y-m-d'); ?>" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                            <input type="date" name="date_ot" id="t_date" value="<?php echo date('Y-m-d'); ?>" onchange="calculateDuration('add')" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
                         </div>
 
                         <div>
@@ -573,7 +575,7 @@ $extraHead = '
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Tanggal</label>
-                            <input type="date" name="date_ot" id="edit_date" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                            <input type="date" name="date_ot" id="edit_date" onchange="calculateEditDuration()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Nomor SPK</label>
@@ -736,45 +738,115 @@ $extraHead = '
         })();
 
         // 1. HITUNG DURASI OTOMATIS (Modal Create & Edit)
-        function calculateDuration(type = 'add') {
-            const prefix = type === 'edit' ? 'edit_' : 't_';
-            const startVal = document.getElementById(type === 'edit' ? 'edit_start' : 't_start').value;
-            const endVal = document.getElementById(type === 'edit' ? 'edit_end' : 't_end').value;
-            const display = document.getElementById(type === 'edit' ? 'edit_duration' : 'duration_preview');
+        // function calculateDuration(type = 'add') {
+        //     const prefix = type === 'edit' ? 'edit_' : 't_';
+        //     const startVal = document.getElementById(type === 'edit' ? 'edit_start' : 't_start').value;
+        //     const endVal = document.getElementById(type === 'edit' ? 'edit_end' : 't_end').value;
+        //     const display = document.getElementById(type === 'edit' ? 'edit_duration' : 'duration_preview');
 
-            if (startVal && endVal) {
+        //     if (startVal && endVal) {
+        //         let start = new Date("2000-01-01 " + startVal);
+        //         let end = new Date("2000-01-01 " + endVal);
+        //         if (end < start) end.setDate(end.getDate() + 1); // Lewat tengah malam
+
+        //         let diffHrs = (end - start) / (1000 * 60 * 60);
+        //         if (diffHrs > 4) diffHrs -= 1; // Potong istirahat 1 jam jika > 4 jam
+        //         display.innerText = diffHrs.toFixed(1) + " Jam";
+        //     }
+        // }
+        function calculateDuration(type = 'add') {
+            const dateVal = document.getElementById('t_date').value;
+            const startVal = document.getElementById('t_start').value;
+            const endVal = document.getElementById('t_end').value;
+            const display = document.getElementById('duration_preview');
+
+            if (dateVal && startVal && endVal) {
                 let start = new Date("2000-01-01 " + startVal);
                 let end = new Date("2000-01-01 " + endVal);
                 if (end < start) end.setDate(end.getDate() + 1); // Lewat tengah malam
 
                 let diffHrs = (end - start) / (1000 * 60 * 60);
-                if (diffHrs > 4) diffHrs -= 1; // Potong istirahat 1 jam jika > 4 jam
+
+                // --- DETEKSI HARI JUMAT ---
+                let otDate = new Date(dateVal);
+                let isFriday = otDate.getDay() === 5; // 5 adalah indeks untuk hari Jumat
+
+                if (diffHrs > 4) {
+                    if (isFriday) {
+                        diffHrs -= 1.5; // Jika Jumat, potong istirahat 1.5 Jam
+                    } else {
+                        diffHrs -= 1.0; // Hari biasa potong 1 Jam
+                    }
+                }
+                
+                // --- SAFETY NET: Batas Maksimal 7 Jam (Opsional jika mau dipaksa mentok 7) ---
+                if (diffHrs > 7) {
+                    diffHrs = 7.0;
+                }
+
                 display.innerText = diffHrs.toFixed(1) + " Jam";
+            } else {
+                display.innerText = "0.0 Jam";
             }
         }
 
         // --- FUNGSI HITUNG DURASI KHUSUS MODAL EDIT ---
+        // function calculateEditDuration() {
+        //     const startVal = document.getElementById('edit_start').value;
+        //     const endVal = document.getElementById('edit_end').value;
+        //     const display = document.getElementById('edit_duration');
+
+        //     if (startVal && endVal) {
+        //         let start = new Date("2000-01-01 " + startVal);
+        //         let end = new Date("2000-01-01 " + endVal);
+
+        //         // Handle jika lembur melewati tengah malam (misal: 22:00 - 02:00)
+        //         if (end < start) {
+        //             end.setDate(end.getDate() + 1);
+        //         }
+
+        //         let diffMs = end - start;
+        //         let diffHrs = diffMs / (1000 * 60 * 60); // Konversi ke jam
+
+        //         // --- LOGIKA POTONG ISTIRAHAT 1 JAM ---
+        //         // Jika durasi kerja lebih dari 4 jam, otomatis potong 1 jam istirahat
+        //         if (diffHrs > 4) {
+        //             diffHrs = diffHrs - 1;
+        //         }
+
+        //         display.innerText = diffHrs.toFixed(1) + " Jam";
+        //     } else {
+        //         display.innerText = "0.0 Jam";
+        //     }
+        // }
         function calculateEditDuration() {
+            const dateVal = document.getElementById('edit_date').value;
             const startVal = document.getElementById('edit_start').value;
             const endVal = document.getElementById('edit_end').value;
             const display = document.getElementById('edit_duration');
 
-            if (startVal && endVal) {
+            if (dateVal && startVal && endVal) {
                 let start = new Date("2000-01-01 " + startVal);
                 let end = new Date("2000-01-01 " + endVal);
+                if (end < start) end.setDate(end.getDate() + 1);
 
-                // Handle jika lembur melewati tengah malam (misal: 22:00 - 02:00)
-                if (end < start) {
-                    end.setDate(end.getDate() + 1);
+                let diffHrs = (end - start) / (1000 * 60 * 60); 
+
+                // --- DETEKSI HARI JUMAT ---
+                let otDate = new Date(dateVal);
+                let isFriday = otDate.getDay() === 5;
+
+                if (diffHrs > 4) {
+                    if (isFriday) {
+                        diffHrs -= 1.5; // Jika Jumat, potong istirahat 1.5 Jam
+                    } else {
+                        diffHrs -= 1.0; // Hari biasa potong 1 Jam
+                    }
                 }
 
-                let diffMs = end - start;
-                let diffHrs = diffMs / (1000 * 60 * 60); // Konversi ke jam
-
-                // --- LOGIKA POTONG ISTIRAHAT 1 JAM ---
-                // Jika durasi kerja lebih dari 4 jam, otomatis potong 1 jam istirahat
-                if (diffHrs > 4) {
-                    diffHrs = diffHrs - 1;
+                // --- SAFETY NET: Batas Maksimal 7 Jam ---
+                if (diffHrs > 7) {
+                    diffHrs = 7.0;
                 }
 
                 display.innerText = diffHrs.toFixed(1) + " Jam";
@@ -791,7 +863,8 @@ $extraHead = '
             document.getElementById('edit_end').value = end;
             document.getElementById('edit_duration').innerText = duration + " Jam";
             document.getElementById('edit_spk').value = spk;
-            document.getElementById('edit_activity').value = activity;
+            // document.getElementById('edit_activity').value = activity;
+            document.getElementById('edit_activity').value = activity.split("_ENTER_").join("\n");
             openModal('modalEditOvertime');
         }
 

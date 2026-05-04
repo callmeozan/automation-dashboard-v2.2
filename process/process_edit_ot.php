@@ -41,18 +41,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $sql_where = "WHERE ot_id='$ot_id' AND user_id='$user_id' AND status='Pending'";
     }
 
-    // --- C. HITUNG ULANG DURASI ---
+
+    // --- C. HITUNG ULANG DURASI CERDAS ---
     $start_ts = strtotime($time_start);
     $end_ts   = strtotime($time_end);
     
-    // Handle lembur lintas hari (misal jam 23:00 s/d 01:00)
     if ($end_ts < $start_ts) {
         $end_ts += 24 * 60 * 60; 
     }
 
-    $raw_duration = ($end_ts - $start_ts) / 3600;
-    if ($raw_duration > 4) {
-        $raw_duration = $raw_duration - 1;
+    $durasi_kotor = ($end_ts - $start_ts) / 3600;
+    $nama_hari = date('l', strtotime($date_ot));
+
+    if ($durasi_kotor > 4) {
+        if ($nama_hari == 'Friday') {
+            $raw_duration = $durasi_kotor - 1.5; // Jumat
+        } else {
+            $raw_duration = $durasi_kotor - 1.0; // Hari biasa
+        }
+    } else {
+        $raw_duration = $durasi_kotor;
+    }
+
+    // Safety Net: Maksimal 7 Jam
+    if ($raw_duration > 7) {
+        $raw_duration = 7.0;
     }
 
     $duration = number_format($raw_duration, 1);
