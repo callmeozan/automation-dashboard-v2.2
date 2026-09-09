@@ -106,7 +106,7 @@ function timeAgo($datetime, $full = false) {
                             <thead class="bg-slate-900/50 text-xs uppercase font-semibold text-slate-300 border-b border-slate-700">
                                 <tr>
                                     <th class="px-6 py-4">User Profile</th>
-                                    <th class="px-6 py-4">Username (NIK)</th>
+                                    <th class="px-6 py-4">ID Number</th>
                                     <th class="px-6 py-4">Role</th>
                                     <th class="px-6 py-4">Last Login</th>
                                     <th class="px-6 py-4 text-center">Actions</th>

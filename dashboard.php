@@ -14,6 +14,22 @@ $dUser = mysqli_fetch_assoc(mysqli_query($conn, "SELECT short_name FROM tb_users
 $myName = $dUser['short_name'] ?? 'User';
 $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic LIKE '%$myName%' ORDER BY date_log DESC, time_start DESC LIMIT 5");
 
+// C. AMBIL & HANDLE ANNOUNCEMENT UPDATE
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_update_announcement'])) {
+    if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'section') {
+        $annTitle   = mysqli_real_escape_string($conn, $_POST['ann_title']);
+        $annMessage = mysqli_real_escape_string($conn, $_POST['ann_message']);
+        $annTag     = mysqli_real_escape_string($conn, $_POST['ann_tag']);
+        $annActive  = isset($_POST['ann_active']) ? 1 : 0;
+
+        mysqli_query($conn, "UPDATE tb_announcements SET title='$annTitle', message='$annMessage', version_tag='$annTag', is_active=$annActive WHERE announcement_id=1");
+        header("Location: dashboard.php?status=updated");
+        exit;
+    }
+}
+
+$qAnn = mysqli_query($conn, "SELECT * FROM tb_announcements WHERE announcement_id=1 LIMIT 1");
+$annData = mysqli_fetch_assoc($qAnn);
 
 // 3. SETTING TAMPILAN LAYOUT (HEADER & HEAD)
 $pageTitle = "Departement Performance";
@@ -92,6 +108,63 @@ $extraHead = '
          <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 space-y-8 fade-in">
+                <!-- ANNOUNCEMENT BANNER UPDATE (COLLAPSIBLE & DISMISSIBLE) -->
+                <?php if (!empty($annData) && ($annData['is_active'] == 1 || $_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section')): ?>
+                    <div id="announcementBox" class="relative bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/30 rounded-2xl p-5 shadow-xl transition-all duration-300 overflow-hidden group">
+                        <div class="absolute -right-12 -top-12 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                        <!-- Bar Header & Tombol Kontrol Kanan Atas -->
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 rounded-full">
+                                    <?php echo htmlspecialchars($annData['version_tag']); ?>
+                                </span>
+                                <?php if ($annData['is_active'] == 0): ?>
+                                    <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">Hidden from Users</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Kontrol: Edit (Admin), Minimize, Close -->
+                            <div class="flex items-center gap-1.5 z-10">
+                                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
+                                    <button onclick="openModal('modalEditAnnouncement')" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-lg text-xs transition" title="Edit Announcement">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                <?php endif; ?>
+
+                                <!-- Tombol Minimize -->
+                                <button onclick="toggleMinimizeAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg text-xs transition" title="Minimize / Expand">
+                                    <i id="annMinimizeIcon" class="fas fa-chevron-up"></i>
+                                </button>
+
+                                <!-- Tombol Close (Sembunyikan) -->
+                                <button onclick="dismissAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg text-xs transition" title="Close">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Isi Konten yang Bisa Diciutkan -->
+                        <div id="annBodyContent" class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300">
+                            <div class="flex items-start gap-4">
+                                <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl shrink-0 shadow-inner">
+                                    <i class="fas fa-bullhorn"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-white font-bold text-base"><?php echo htmlspecialchars($annData['title']); ?></h3>
+                                    <p class="text-slate-400 text-xs mt-1 leading-relaxed max-w-3xl"><?php echo nl2br(htmlspecialchars($annData['message'])); ?></p>
+                                </div>
+                            </div>
+
+                            <div class="self-end md:self-center shrink-0">
+                                <a href="user_manual.php" class="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-600/20 transition flex items-center gap-1.5">
+                                    <span>Check It Out</span> <i class="fas fa-arrow-right text-[10px]"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <!-- PRESENTATION MODE ADA DISNI -->
                 <div id="presentationBanner" class="hidden bg-indigo-900/50 border border-indigo-500/50 text-indigo-200 px-4 py-2 rounded-lg text-center text-sm mb-4">
                     <i class="fas fa-info-circle"></i> Presentation Mode Active.
@@ -666,15 +739,15 @@ $extraHead = '
 
                 <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                        <i class="fas fa-user-plus text-emerald-400"></i> Registrasi User Baru
+                        <i class="fas fa-user-plus text-emerald-400"></i> Add New User
                     </h3>
                     <button onclick="closeModal('modalAddUser')" class="close-modal-user text-slate-400 hover:text-red-400 transition"><i class="fas fa-times text-xl"></i></button>
                 </div>
 
                 <form action="process/process_add_user.php" method="POST" class="space-y-4">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1 font-medium">Username (NIK)</label>
-                        <input type="text" name="username" placeholder="Contoh: 12-3456" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
+                        <label class="block text-xs text-slate-400 mb-1 font-medium">ID Number</label>
+                        <input type="text" name="username" placeholder="Example: 12-3456" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
                     </div>
                     <div>
                         <label class="block text-xs text-slate-400 mb-1 font-medium">Password</label>
@@ -683,18 +756,18 @@ $extraHead = '
 
                     <div>
                         <label class="block text-xs text-slate-400 mb-1 font-medium">Full Name</label>
-                        <input type="text" name="full_name" placeholder="Contoh: Faozan Nur Amanulloh" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
+                        <input type="text" name="full_name" placeholder="Example: Faozan Nur Amanulloh" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1 font-medium">Short Name (Panggilan)</label>
-                        <input type="text" name="short_name" placeholder="Contoh: Faozan" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
-                        <p class="text-[10px] text-slate-500 mt-1">*Digunakan untuk dropdown list team.</p>
+                        <label class="block text-xs text-slate-400 mb-1 font-medium">Short Name (Call Sign)</label>
+                        <input type="text" name="short_name" placeholder="Example: Faozan" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required>
+                        <p class="text-[10px] text-slate-500 mt-1">*Use for display purposes only.</p>
                     </div>
 
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1 font-medium">Role / Jabatan</label>
+                        <label class="block text-xs text-slate-400 mb-1 font-medium">Role</label>
                         <select name="role" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
-                            <option value="-">--Pilih--</option>
+                            <option value="-">--Select--</option>
                             <option value="worker">Worker (Lapangan)</option>
                             <option value="officer">Officer (Staff)</option>
                             <option value="section">Section Head</option>
@@ -704,7 +777,7 @@ $extraHead = '
                     <div class="pt-4 flex gap-3 border-t border-slate-800 mt-2">
                         <button type="button" onclick="closeModal('modalAddUser')" class="close-modal-user flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-sm">Batal</button>
                         <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm font-medium shadow-lg shadow-emerald-600/20">
-                            <i class="fas fa-save mr-2"></i> Simpan User
+                            <i class="fas fa-save mr-2"></i> Save User
                         </button>
                     </div>
                 </form>
@@ -712,6 +785,52 @@ $extraHead = '
         </div>
     </div>
 
+    <!-- MODAL FORM EDIT ANNOUNCEMENT -->
+    <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
+        <div id="modalEditAnnouncement" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onclick="closeModal('modalEditAnnouncement')"></div>
+            <div class="relative flex items-center justify-center min-h-screen p-4">
+                <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-xl shadow-2xl p-6 relative">
+                    <div class="flex justify-between items-center mb-5 border-b border-slate-800 pb-3">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-bullhorn text-cyan-400"></i> Manage Announcement
+                        </h3>
+                        <button onclick="closeModal('modalEditAnnouncement')" class="text-slate-400 hover:text-red-400"><i class="fas fa-times text-lg"></i></button>
+                    </div>
+
+                    <form action="dashboard.php" method="POST" class="space-y-4">
+                        <input type="hidden" name="action_update_announcement" value="1">
+
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1 font-medium">Tag / Version</label>
+                            <input type="text" name="ann_tag" value="<?php echo htmlspecialchars($annData['version_tag'] ?? 'Update v1.1.0'); ?>" placeholder="e.g. Update v1.1.0" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1 font-medium">Announcement Title</label>
+                            <input type="text" name="ann_title" value="<?php echo htmlspecialchars($annData['title'] ?? ''); ?>" placeholder="Announcement heading..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1 font-medium">Announcement Message</label>
+                            <textarea name="ann_message" rows="3" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required><?php echo htmlspecialchars($annData['message'] ?? ''); ?></textarea>
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-1">
+                            <input type="checkbox" name="ann_active" id="ann_active" value="1" <?php echo (!empty($annData) && $annData['is_active'] == 1) ? 'checked' : ''; ?> class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-600 focus:ring-cyan-500">
+                            <label for="ann_active" class="text-xs text-slate-300 select-none cursor-pointer">Show this banner to all users</label>
+                        </div>
+
+                        <div class="pt-4 flex gap-3 border-t border-slate-800">
+                            <button type="button" onclick="closeModal('modalEditAnnouncement')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs">Cancel</button>
+                            <button type="submit" class="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-600/20">Save & Publish</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+    
     <!-- MOBILE NAV ADA DISINI -->
     <?php include 'layouts/mobile_nav.php'; ?>
 
@@ -903,6 +1022,55 @@ window.allRows = window.allRows || [];
                 if (result.isConfirmed) window.location.href = 'delete/delete_project.php?id=' + id + '&redirect=dashboard.php';
             });
         }
+
+        // Current Announcement Version dari Server PHP
+    (function() {
+        const currentAnnVersion = "<?php echo htmlspecialchars($annData['version_tag'] ?? 'v1.0.0'); ?>";
+
+        window.toggleMinimizeAnnouncement = function() {
+            const content = document.getElementById('annBodyContent');
+            const icon = document.getElementById('annMinimizeIcon');
+            if (!content) return;
+
+            const isHidden = content.classList.toggle('hidden');
+            if (icon) {
+                icon.classList.toggle('fa-chevron-up', !isHidden);
+                icon.classList.toggle('fa-chevron-down', isHidden);
+            }
+            localStorage.setItem('ann_minimized_' + currentAnnVersion, isHidden ? 'true' : 'false');
+        };
+
+        window.dismissAnnouncement = function() {
+            const box = document.getElementById('announcementBox');
+            if (box) {
+                box.classList.add('hidden');
+                const today = new Date().toISOString().split('T')[0];
+                localStorage.setItem('ann_dismissed_date', today);
+                localStorage.setItem('ann_last_version', currentAnnVersion);
+            }
+        };
+
+        // Inisialisasi status banner
+        const today = new Date().toISOString().split('T')[0];
+        const dismissedDate = localStorage.getItem('ann_dismissed_date');
+        const lastVersion = localStorage.getItem('ann_last_version');
+
+        if (lastVersion === currentAnnVersion && dismissedDate === today) {
+            const box = document.getElementById('announcementBox');
+            if (box) box.classList.add('hidden');
+            return;
+        }
+
+        if (localStorage.getItem('ann_minimized_' + currentAnnVersion) === 'true') {
+            const content = document.getElementById('annBodyContent');
+            const icon = document.getElementById('annMinimizeIcon');
+            if (content && icon) {
+                content.classList.add('hidden');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+    })();
     </script>
     </body>
 </html>

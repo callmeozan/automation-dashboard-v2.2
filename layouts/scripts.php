@@ -22,19 +22,19 @@
 
         if (status) {
             let icon = 'success';
-            let title = 'Berhasil!';
+            let title = 'Success!';
             let btnColor = '#059669';
 
             if (status === 'error') {
                 icon = 'error';
-                title = 'Gagal!';
+                title = 'Failed!';
                 btnColor = '#ef4444';
             }
 
             Swal.fire({
                 icon: icon,
                 title: title,
-                text: msg || 'Transaksi berhasil diproses.',
+                text: msg || 'The operation was completed.',
                 background: '#1e293b',
                 color: '#fff',
                 confirmButtonColor: btnColor,

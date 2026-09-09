@@ -1,9 +1,14 @@
 <?php
 // layouts/auth_and_config.php
-session_start();
+ini_set('session.gc_maxlifetime', 604800);
+ini_set('session.cookie_lifetime', 604800);
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // 1. CEK LOGIN (SATPAM)
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
 }

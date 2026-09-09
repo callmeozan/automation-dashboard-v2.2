@@ -61,24 +61,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         <div class="text-center mb-6">
             <h1 class="text-xl font-bold text-white">Reset Password</h1>
-            <p class="text-xs text-slate-500 mt-1">Verifikasi identitas Anda untuk melanjutkan.</p>
+            <p class="text-xs text-slate-500 mt-1">Verify your identity to reset your password.</p>
         </div>
 
         <?php if ($step == 1 && empty($success)): ?>
         <form method="POST" class="space-y-4">
             <div>
-                <label class="block text-xs text-slate-400 mb-1">NIK (Username)</label>
-                <input type="text" name="username" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none">
+                <label class="block text-xs text-slate-400 mb-1">ID Number</label>
+                <input type="text" name="username" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none " placeholder="Example: 23-2122">
             </div>
             <div>
-                <label class="block text-xs text-slate-400 mb-1">Nama Lengkap (Sesuai Database)</label>
-                <input type="text" name="fullname" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none" placeholder="Contoh: Budi Santoso">
+                <label class="block text-xs text-slate-400 mb-1">Full Name (As in Database)</label>
+                <input type="text" name="fullname" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none" placeholder="Example: Budi Santoso">
             </div>
             <button type="submit" name="verify_user" class="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20">
-                Verifikasi Saya
+                Verify My Identity
             </button>
             <div class="text-center mt-4">
-                <a href="index.php" class="text-xs text-slate-500 hover:text-white">Kembali ke Login</a>
+                <a href="index.php" class="text-xs text-slate-500 hover:text-white">Back to Login</a>
             </div>
         </form>
         <?php endif; ?>
@@ -88,16 +88,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <input type="hidden" name="username_hidden" value="<?php echo $nik_verified; ?>">
             
             <div class="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded text-center mb-4">
-                <p class="text-xs text-emerald-400"><i class="fas fa-check-circle mr-1"></i> Identitas Terverifikasi!</p>
+                <p class="text-xs text-emerald-400"><i class="fas fa-check-circle mr-1"></i> Identity Verified!</p>
                 <p class="text-sm font-bold text-white mt-1"><?php echo $nik_verified; ?></p>
             </div>
 
             <div>
-                <label class="block text-xs text-slate-400 mb-1">Password Baru</label>
-                <input type="password" name="new_password" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none" placeholder="Minimal 6 karakter">
+                <label class="block text-xs text-slate-400 mb-1">New Password</label>
+                <input type="password" name="new_password" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 outline-none" placeholder="Minimum 6 characters">
             </div>
             <button type="submit" name="save_password" class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-blue-600/20">
-                Simpan Password Baru
+                Save New Password
             </button>
         </form>
         <?php endif; ?>

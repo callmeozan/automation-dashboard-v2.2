@@ -172,7 +172,7 @@ $extraHead = '
                                         // 2. Ganti Enter dengan Penanda Unik "_ENTER_"
                                         $clean_problem = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['problem']);
                                         $clean_action  = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['action']);
-                                        $clean_part  = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['sparepart_used']);
+                                        $clean_part  = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['sparepart_used'] ?? '');
 
                                         // Logika Warna Badge Kategori
                                         $catColor = 'text-slate-400 border-slate-500'; // Default
@@ -422,7 +422,7 @@ $extraHead = '
 
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">3. Plant / Area</label>
-                            <select name="plant" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <select name="plant" id="create_plant" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
                                 <option value="">-- Pilih --</option>
                                 <option value="PLANT A">PLANT A</option>
                                 <option value="PLANT BCHIT">PLANT BCHIT</option>
@@ -430,6 +430,7 @@ $extraHead = '
                                 <option value="PLANT E">PLANT E</option>
                                 <option value="PLANT TBR">PLANT TBR</option>
                                 <option value="PLANT MIXING">PLANT MIXING</option>
+                                <option value="RUANG AUTOMATION">MARKAS BESAR</option>
                             </select>
                         </div>
                     </div>
@@ -508,7 +509,7 @@ $extraHead = '
                                 <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                     <i class="fas fa-cloud-upload-alt text-2xl text-slate-500 mb-2 group-hover:text-emerald-400 transition"></i>
                                     <p class="text-sm text-slate-400 mb-1"><span class="font-semibold text-emerald-400">Klik untuk upload</span></p>
-                                    <p id="file-name-display" class="text-xs text-emerald-400 mt-2 font-medium hidden"></p>
+                                    <p id="file-name-create" class="text-xs text-emerald-400 mt-2 font-medium hidden"></p>
                                 </div>
                                 <input id="file_evidence" type="file" name="evidence[]" multiple accept="image/*,.pdf" class="hidden" />
                             </label>
@@ -564,7 +565,7 @@ $extraHead = '
                                 <option value="PLANT E">PLANT E</option>
                                 <option value="PLANT TBR">PLANT TBR</option>
                                 <option value="PLANT MIXING">PLANT MIXING</option>
-                                <!-- <option value="PLANT DUMMY">PLANT DUMMY</option> -->
+                                <option value="RUANG AUTOMATION">MARKAS BESAR</option>
                             </select>
                         </div>
 
@@ -680,6 +681,32 @@ $extraHead = '
         // Kita simpan instance-nya di variabel global biar bisa di-clear saat edit
         var tomSelectPicCreate, tomSelectPicEdit;
 
+        document.addEventListener('turbo:load', function() {
+            // 1. Logika untuk Modal EDIT
+            const editPlant = document.getElementById('edit_plant');
+            const editMachine = document.getElementById('edit_machine');
+
+            if (editPlant && editMachine) {
+                editPlant.addEventListener('change', function() {
+                    if (this.value === 'RUANG AUTOMATION') {
+                        editMachine.value = 'Ruang Automasi';
+                    }
+                });
+            }
+
+            // 2. Logika untuk Modal CREATE
+            const createPlant = document.getElementById('create_plant');
+            const createMachine = document.getElementById('create_machine') || document.querySelector('input[name="machine_name"]');
+
+            if (createPlant && createMachine) {
+                createPlant.addEventListener('change', function() {
+                    if (this.value === 'RUANG AUTOMATION') {
+                        createMachine.value = 'Ruang Automasi';
+                    }
+                });
+            }
+        });
+
         (function() {
             // Init TomSelect untuk Modal Create (Dashboard & Laporan)
             const configTom = { plugins: ['remove_button'], create: false, maxItems: 5, placeholder: "Pilih PIC..." };
@@ -701,7 +728,7 @@ $extraHead = '
             initTablePagination();
 
             // --- C. LOGIC UPLOAD FILE PREVIEW ---
-            setupFileUpload('file_evidence', 'file-name-display');
+            setupFileUpload('file_evidence', 'file-name-create');
             setupFileUpload('file_evidence_edit', 'file-name-edit');
         })();
 
@@ -770,8 +797,8 @@ $extraHead = '
             if (fileInput && fileNameDisplay) {
                 fileInput.addEventListener('change', function() {
                     const files = this.files;
-                    if (files.length > 5) {
-                        Swal.fire({ icon: 'warning', title: 'Maksimal 5 File!', background: '#1e293b', color: '#fff' });
+                    if (files.length > 10) {
+                        Swal.fire({ icon: 'warning', title: 'Maksimal 10 File!', background: '#1e293b', color: '#fff' });
                         this.value = ''; fileNameDisplay.classList.add('hidden'); return;
                     }
                     if (files.length > 0) {

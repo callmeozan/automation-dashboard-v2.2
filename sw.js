@@ -1,4 +1,4 @@
-const CACHE_NAME = "autodash-v2"; // Ganti versi biar cache lama terhapus
+const CACHE_NAME = "autodash-v3"; // Naikkan versi agar cache lama bersih
 const urlsToCache = [
   "./",
   "./manifest.json",
@@ -13,7 +13,7 @@ self.addEventListener("install", (event) => {
       return cache.addAll(urlsToCache);
     })
   );
-  self.skipWaiting(); // Paksa SW baru untuk segera aktif
+  self.skipWaiting();
 });
 
 // 2. Activate (Hapus cache lama)
@@ -34,24 +34,28 @@ self.addEventListener("activate", (event) => {
 });
 
 // 3. Fetch (Strategi: Network First, Falling Back to Cache)
-// Ini yang memperbaiki masalah Redirect Error
 self.addEventListener("fetch", (event) => {
-  
-  // Abaikan request selain GET (misal POST login)
+  // Abaikan request selain GET (misal POST form login, upload manual)
   if (event.request.method !== 'GET') {
-      return;
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // KUNCI PERBAIKAN: Abaikan request non-HTTP/HTTPS (misal chrome-extension://)
+  if (!url.protocol.startsWith('http')) {
+    return;
   }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Jika berhasil connect internet/server:
-        // 1. Cek apakah response valid (bukan error)
+        // Cek apakah response valid
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
 
-        // 2. Simpan copy halaman terbaru ke cache (untuk bekal offline nanti)
+        // Simpan salinan ke cache
         const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
@@ -60,8 +64,7 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => {
-        // Jika OFFLINE / Internet Mati:
-        // Ambil dari cache
+        // Jika offline, fallback ke cache
         return caches.match(event.request);
       })
   );

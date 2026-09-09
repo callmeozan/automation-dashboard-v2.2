@@ -142,6 +142,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <script>
+        (function() {
         const loginForm = document.getElementById('loginForm');
         if (loginForm) {
             loginForm.addEventListener('submit', function(e) {
@@ -151,6 +152,7 @@ if (isset($_SESSION['user_id'])) {
                 btn.classList.add('opacity-80', 'cursor-not-allowed');
             });
         }
+        })();
     </script>
 
     <?php
@@ -200,7 +202,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <script>
-        let deferredPrompt; 
+        window.deferredPrompt = window.deferredPrompt || null; 
         const popup = document.getElementById('install-popup');
         const btnInstall = document.getElementById('btn-install-app');
         const btnBatal = document.getElementById('btn-batal');

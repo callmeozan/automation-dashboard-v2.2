@@ -101,6 +101,9 @@ $extraHead = '
                     <a href="master_items.php" class="px-6 py-3 text-sm font-bold text-cyan-400 border-b-2 border-cyan-400">
                         <i class="fas fa-box mr-2"></i> Master Items
                     </a>
+                    <a href="user_manual.php" class="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white hover:border-slate-500 border-b-2 border-transparent transition">
+                        <i class="fas fa-book mr-2"></i> User Manual
+                    </a>
                 </div>
 
                 <div class="flex flex-col md:flex-row justify-between gap-4">
@@ -269,7 +272,7 @@ $extraHead = '
     <?php include 'layouts/mobile_nav.php'; ?>
     <?php include 'layouts/scripts.php'; ?>
 
-    <script>
+<script>
         (function() {
             const liveFilterInput = document.getElementById('liveTableFilter');
             const tableToFilter = document.getElementById('masterItemTable');
@@ -411,7 +414,7 @@ $extraHead = '
                 confirmButtonColor: '#ef4444'
             }).then(() => window.history.replaceState(null, null, window.location.pathname));
         }
-    </script>
+</script>
 
     </body>
 </html>

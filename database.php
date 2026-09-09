@@ -58,6 +58,9 @@ $extraHead = '
                     <a href="master_items.php" class="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white hover:border-slate-500 border-b-2 border-transparent transition">
                         <i class="fas fa-box mr-2"></i> Master Items
                     </a>
+                    <a href="user_manual.php" class="px-6 py-3 text-sm font-medium text-slate-400 hover:text-white hover:border-slate-500 border-b-2 border-transparent transition">
+                        <i class="fas fa-book mr-2"></i> User Manual
+                    </a>
                 </div>
 
                 <div class="flex flex-col md:flex-row justify-between gap-4">

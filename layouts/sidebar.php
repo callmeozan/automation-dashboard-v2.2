@@ -21,7 +21,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <div class="relative">
             <?php 
                 // Cek apakah sedang di salah satu menu database
-                $is_db_active = ($current_page == 'database.php' || $current_page == 'master_items.php');
+                $is_db_active = ($current_page == 'database.php' || $current_page == 'master_items.php' || $current_page == 'user_manual.php');
             ?>
             <button onclick="toggleDbMenu()" class="nav-item hover:text-cyan-400 w-full flex justify-between items-center focus:outline-none group <?php echo $is_db_active ? 'text-white bg-slate-800/50' : ''; ?>">
                 <div class="flex items-center gap-3">
@@ -37,6 +37,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 </a>
                 <a href="master_items.php" class="block text-sm py-1 transition <?php echo ($current_page == 'master_items.php') ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-cyan-400'; ?>">
                     • Master Items
+                </a>
+                <a href="user_manual.php" class="block text-sm py-1 transition <?php echo ($current_page == 'user_manual.php') ? 'text-cyan-400 font-bold' : 'text-slate-400 hover:text-cyan-400'; ?>">
+                    • User Manual
                 </a>
             </div>
         </div>

@@ -43,7 +43,7 @@ $menus[] = ['url' => 'logout.php', 'icon' => 'fas fa-sign-out-alt', 'label' => '
             <?php foreach ($menus as $menu): ?>
                 <?php 
                     if ($menu['url'] == 'database.php') {
-                        $isActive = ($currentPage == 'database.php' || $currentPage == 'master_items.php');
+                        $isActive = ($currentPage == 'database.php' || $currentPage == 'master_items.php' || $currentPage == 'user_manual.php');
                     } elseif ($menu['url'] == 'laporan.php') {
                         $isActive = ($currentPage == 'laporan.php' || $currentPage == 'my_laporan.php');
                     } elseif ($menu['url'] == 'monitoring.php' || $menu['url'] == 'temperature.php') {
