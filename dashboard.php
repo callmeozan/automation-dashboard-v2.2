@@ -459,7 +459,7 @@ $extraHead = '
 
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">3. Plant / Area</label>
-                            <select name="plant" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <select name="plant" id="create_plant" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
                                 <option value="">-- Pilih --</option>
                                 <option value="PLANT A">PLANT A</option>
                                 <option value="PLANT BCHIT">PLANT BCHIT</option>
@@ -467,6 +467,7 @@ $extraHead = '
                                 <option value="PLANT E">PLANT E</option>
                                 <option value="PLANT TBR">PLANT TBR</option>
                                 <option value="PLANT MIXING">PLANT MIXING</option>
+                                <option value="RUANG AUTOMATION">MARKAS BESAR</option>
                             </select>
                         </div>
                     </div>
@@ -838,13 +839,27 @@ $extraHead = '
      <?php include 'layouts/scripts.php'; ?>
 
      <!-- SCRIPT DASHBOARD ADA DISINI -->
-     <script>
-window.rowsPerPage = window.rowsPerPage || 10;
-window.currentPage = window.currentPage || 1;
-window.currentSearchKeyword = window.currentSearchKeyword || "";
-window.allRows = window.allRows || [];
+<script>
+    window.rowsPerPage = window.rowsPerPage || 10;
+    window.currentPage = window.currentPage || 1;
+    window.currentSearchKeyword = window.currentSearchKeyword || "";
+    window.allRows = window.allRows || [];
 
-        (function() {
+    document.addEventListener('turbo:load', function() {
+            // 2. Logika untuk Modal CREATE
+            const createPlant = document.getElementById('create_plant');
+            const createMachine = document.getElementById('create_machine') || document.querySelector('input[name="machine_name"]');
+
+            if (createPlant && createMachine) {
+                createPlant.addEventListener('change', function() {
+                    if (this.value === 'RUANG AUTOMATION') {
+                        createMachine.value = 'Ruang Automasi';
+                    }
+                });
+            }
+    });
+
+    (function() {
             if (document.documentElement.hasAttribute("data-turbo-preview")) return;
             if (!window.location.pathname.includes('dashboard.php')) return;
             console.log("Dashboard Logic Started!");
@@ -910,10 +925,10 @@ window.allRows = window.allRows || [];
                     renderTable();
                 });
             }
-        })();
+    })();
 
-        // FUNGSI UTAMA: RENDER ULANG TABEL
-        function renderTable() {
+    // FUNGSI UTAMA: RENDER ULANG TABEL
+    function renderTable() {
             const tableBody = document.querySelector('#projectTableBody');
             const pageInfo = document.getElementById('pageInfo');
             const paginationControls = document.getElementById('paginationControls');
@@ -951,9 +966,9 @@ window.allRows = window.allRows || [];
 
             // 6. Gambar ulang tombol angka (1, 2, 3...)
             renderPaginationButtons(totalPages);
-        }
+    }
 
-        function renderPaginationButtons(totalPages) {
+    function renderPaginationButtons(totalPages) {
             const container = document.getElementById('paginationControls');
             if (!container) return;
             container.innerHTML = "";
@@ -984,10 +999,10 @@ window.allRows = window.allRows || [];
 
             // Next
             if (currentPage < totalPages) container.appendChild(createBtn("Next", currentPage + 1, true));
-        }
+    }
 
-        // --- 2. FUNGSI EDIT & DELETE (TETAP DISINI) ---
-        function editProject(id, name, desc, date, cat, team, act, plant, status) {
+    // --- 2. FUNGSI EDIT & DELETE (TETAP DISINI) ---
+    function editProject(id, name, desc, date, cat, team, act, plant, status) {
             document.getElementById('edit_id').value = id;
             
             // 1. TAMBAHKAN SPLIT ENTER DI SINI:
@@ -1008,9 +1023,9 @@ window.allRows = window.allRows || [];
                 }
             }
             openModal('modalEditProject');
-        }
+    }
 
-        function confirmDelete(id) {
+    function confirmDelete(id) {
             Swal.fire({
                 title: 'Hapus Project?',
                 text: "Data tidak bisa dikembalikan!",
@@ -1021,9 +1036,9 @@ window.allRows = window.allRows || [];
             }).then((result) => {
                 if (result.isConfirmed) window.location.href = 'delete/delete_project.php?id=' + id + '&redirect=dashboard.php';
             });
-        }
+    }
 
-        // Current Announcement Version dari Server PHP
+    // Current Announcement Version dari Server PHP
     (function() {
         const currentAnnVersion = "<?php echo htmlspecialchars($annData['version_tag'] ?? 'v1.0.0'); ?>";
 

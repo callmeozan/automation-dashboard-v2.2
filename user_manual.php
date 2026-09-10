@@ -204,35 +204,12 @@ $extraHead = '
 
                                             <!-- Machines & Manuals Grid -->
                                             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                <?php foreach ($manualList as $item): ?>
-                                                    <!-- <div class="manual-item bg-slate-800/90 border border-slate-700/80 rounded-lg p-3 flex flex-col justify-between hover:border-cyan-500/50 transition group">
-                                                        <div>
-                                                            <div class="flex justify-between items-center mb-1.5">
-                                                                <span class="font-mono text-[11px] font-bold text-cyan-400 bg-cyan-950/70 border border-cyan-800/50 px-2 py-0.5 rounded">
-                                                                    <?php echo htmlspecialchars($item['machine_name']); ?>
-                                                                </span>
-                                                                <div class="flex items-center gap-2">
-                                                                    <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars(addslashes($item['plant'])); ?>', '<?php echo htmlspecialchars(addslashes($item['area'])); ?>', '<?php echo htmlspecialchars(addslashes($item['machine_name'])); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" class="text-slate-400 hover:text-cyan-400 p-1 text-xs" title="Edit">
-                                                                        <i class="fas fa-edit"></i>
-                                                                    </button>
-                                                                    <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" class="text-slate-400 hover:text-red-400 p-1 text-xs" title="Delete">
-                                                                        <i class="fas fa-trash-alt"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                            <h4 class="text-xs md:text-sm font-medium text-white line-clamp-2" title="<?php echo htmlspecialchars($item['manual_title']); ?>">
-                                                                <?php echo htmlspecialchars($item['manual_title']); ?>
-                                                            </h4>
-                                                        </div>
-
-                                                        <div class="pt-2.5 border-t border-slate-700/50 flex items-center justify-between mt-2.5">
-                                                            <span class="text-[10px] text-slate-500">PDF Document</span>
-                                                            <button onclick="previewPdfModal('uploads/manuals/<?php echo urlencode($item['file_pdf']); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" class="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600/10 hover:bg-red-600 border border-red-500/30 rounded text-red-400 hover:text-white text-[11px] font-medium transition shadow-sm">
-                                                                <i class="fas fa-eye"></i>
-                                                                <span>View Manual</span>
-                                                            </button>
-                                                        </div>
-                                                    </div> -->
+                                                <?php foreach ($manualList as $item): 
+                                                    $safe_title   = addslashes(str_replace(array("\r\n", "\r", "\n"), ' ', $item['manual_title']));
+                                                    $safe_machine = addslashes(str_replace(array("\r\n", "\r", "\n"), ' ', $item['machine_name']));
+                                                    $safe_plant   = addslashes($item['plant']);
+                                                    $safe_area    = addslashes($item['area']);
+                                                ?>
                                                     <div class="manual-item relative bg-slate-900/95 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 group overflow-hidden">
                                                         <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity"></div>
                                                         <!-- AKSEN GARIS BUSUR MELINGKAR (RADAR / BLUEPRINT RINGS) -->
@@ -248,16 +225,23 @@ $extraHead = '
                                                                     <?php echo htmlspecialchars($item['machine_name']); ?>
                                                                 </span>
 
-                                                                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
+                                                                
                                                                     <div class="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
-                                                                        <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars(addslashes($item['plant'])); ?>', '<?php echo htmlspecialchars(addslashes($item['area'])); ?>', '<?php echo htmlspecialchars(addslashes($item['machine_name'])); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition" title="Edit Manual">
+                                                                        <!-- TOMBOL EDIT -->
+                                                                        <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars($safe_plant, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_area, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_machine, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_title, ENT_QUOTES); ?>')" 
+                                                                                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition" 
+                                                                                title="Edit Manual">
                                                                             <i class="fas fa-pen text-xs"></i>
-                                                                        </button>
-                                                                        <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition" title="Delete Manual">
+                                                                        </button> 
+
+                                                                        <!-- TOMBOL DELETE -->
+                                                                        <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" 
+                                                                                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition" 
+                                                                                title="Delete Manual">
                                                                             <i class="fas fa-trash-alt text-xs"></i>
                                                                         </button>
                                                                     </div>
-                                                                <?php endif; ?>
+                                                            
                                                             </div>
 
                                                             <!-- Judul Manual Book -->
@@ -301,7 +285,7 @@ $extraHead = '
                     <button onclick="closeModal('modalManual')" class="text-slate-400 hover:text-red-400 transition"><i class="fas fa-times text-xl"></i></button>
                 </div>
 
-                <form action="user_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <form action="user_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4" data-turbo="false">
                     <input type="hidden" name="action" value="create">
 
                     <div>
@@ -343,10 +327,13 @@ $extraHead = '
                             </div>
                             <input id="pdf_manual_create" type="file" name="file_pdf" accept="application/pdf" required class="hidden" onchange="previewManualName(this, 'pdf-create-preview')" />
                         </label>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            Maximum file size: <strong class="text-cyan-400">40 MB</strong> (.pdf). If larger, compress the document first.
+                        </p>
                     </div>
 
                     <div class="pt-4 flex gap-3 border-t border-slate-800">
-                        <button type="button" onclick="closeModal('modalManual')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition">Cancel</button>
+                        <button type="button" onclick="closeModal('modalManual')" class="flex-1 py-2.5 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-transparent hover:border-red-500/30 rounded-lg text-sm transition">Cancel</button>
                         <button type="submit" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20">Save Manual</button>
                     </div>
                 </form>
@@ -363,10 +350,12 @@ $extraHead = '
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
                         <i class="fas fa-edit text-cyan-400"></i> Edit Machine Manual
                     </h3>
-                    <button onclick="closeModal('modalEditManual')" class="text-slate-400 hover:text-red-400 transition"><i class="fas fa-times text-xl"></i></button>
+                    <button onclick="closeModal('modalEditManual')" class="text-slate-400 hover:text-red-400 transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
 
-                <form action="user_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <form action="process/process_edit_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4" data-turbo="false">
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="manual_id" id="edit_manual_id">
 
@@ -379,6 +368,7 @@ $extraHead = '
                             <option value="PLANT D/K">PLANT D/K</option>
                             <option value="PLANT E">PLANT E</option>
                             <option value="PLANT MIXING">PLANT MIXING</option>
+                            <option value="RUANG AUTOMATION">MARKAS BESAR</option>
                         </select>
                     </div>
 
@@ -395,7 +385,7 @@ $extraHead = '
 
                     <div>
                         <label class="block text-xs text-slate-400 mb-1 font-medium">4. Manual Book Title</label>
-                        <input type="text" name="manual_title" id="edit_title" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none">
+                        <input type="text" name="manual_title" id="edit_manual_title" required class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none">
                     </div>
 
                     <div>
@@ -408,10 +398,13 @@ $extraHead = '
                             </div>
                             <input id="pdf_manual_edit" type="file" name="file_pdf" accept="application/pdf" class="hidden" onchange="previewManualName(this, 'pdf-edit-preview')" />
                         </label>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            Maximum file size: <strong class="text-cyan-400">40 MB</strong> (.pdf). If larger, compress the document first.
+                        </p>
                     </div>
 
                     <div class="pt-4 flex gap-3 border-t border-slate-800">
-                        <button type="button" onclick="closeModal('modalEditManual')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm transition">Cancel</button>
+                        <button type="button" onclick="closeModal('modalEditManual')" class="flex-1 py-2.5 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-transparent hover:border-red-500/30 rounded-lg text-sm transition">Cancel</button>
                         <button type="submit" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20">Update Data</button>
                     </div>
                 </form>
@@ -480,12 +473,8 @@ $extraHead = '
             document.getElementById('edit_plant').value = plant;
             document.getElementById('edit_area').value = area;
             document.getElementById('edit_machine').value = machine;
-            document.getElementById('edit_title').value = title;
+            document.getElementById('edit_manual_title').value = title;
             
-            // Reset preview text saat modal dibuka
-            const editPrev = document.getElementById('pdf-edit-preview');
-            if (editPrev) editPrev.classList.add('hidden');
-
             openModal('modalEditManual');
         }
 
@@ -493,17 +482,52 @@ $extraHead = '
         function confirmDeleteManual(id) {
             Swal.fire({
                 title: 'Delete Manual Document?',
-                text: "The PDF file will be permanently removed from the server!",
+                text: 'The PDF file will be permanently removed from the server!',
                 icon: 'warning',
                 showCancelButton: true,
                 background: '#1e293b',
                 color: '#fff',
                 confirmButtonColor: '#ef4444',
-                confirmButtonText: 'Yes, Delete!'
+                cancelButtonColor: '#334155',
+                confirmButtonText: 'Yes, Delete!',
+                cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.getElementById('delete_manual_id').value = id;
-                    document.getElementById('formDeleteManual').submit();
+                    Swal.fire({
+                        title: 'Security Verification',
+                        text: 'Enter authorization password to delete:',
+                        input: 'password',
+                        inputPlaceholder: 'Enter password...',
+                        showCancelButton: true,
+                        background: '#1e293b',
+                        color: '#fff',
+                        confirmButtonColor: '#ef4444',
+                        cancelButtonColor: '#334155',
+                        confirmButtonText: 'Confirm & Delete',
+                        cancelButtonText: 'Cancel',
+                        inputAttributes: {
+                            autocapitalize: 'off',
+                            autocorrect: 'off',
+                            style: 'background-color: #0f172a; color: #fff; border: 1px solid #475569;'
+                        },
+                        preConfirm: (password) => {
+                            if (!password) {
+                                Swal.showValidationMessage('Password is required!');
+                                return false;
+                            }
+                            const masterPassword = 'tanyapakteguh'; // Sesuaikan password Anda
+                            if (password !== masterPassword) {
+                                Swal.showValidationMessage('Invalid password! Access denied.');
+                                return false;
+                            }
+                            return true;
+                        }
+                    }).then((passResult) => {
+                        if (passResult.isConfirmed) {
+                            // Redirect langsung ke file process di folder process/
+                            window.location.href = `process/process_delete_manual.php?id=${id}`;
+                        }
+                    });
                 }
             });
         }
@@ -512,7 +536,30 @@ $extraHead = '
         function previewManualName(input, displayId) {
             const display = document.getElementById(displayId);
             if (display && input.files && input.files[0]) {
-                display.textContent = "📄 " + input.files[0].name;
+                const file = input.files[0];
+                const maxBytes = 40 * 1024 * 1024; // Ambang batas 40 MB
+
+                // Jika ukuran file melebihi 40 MB
+                if (file.size > maxBytes) {
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Size Too Large!',
+                        html: `The selected file is <b>${fileSizeMB} MB</b>.<br>The maximum server limit is <b>40 MB</b>.<br><br><span class="text-xs text-slate-400">Please compress your PDF document before uploading.</span>`,
+                        background: '#1e293b',
+                        color: '#fff',
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: 'Understood'
+                    });
+
+                    // Kosongkan input agar file gagal tidak terkirim
+                    input.value = '';
+                    display.classList.add('hidden');
+                    return;
+                }
+
+                display.textContent = "📄 " + file.name;
                 display.classList.remove('hidden');
             } else if (display) {
                 display.classList.add('hidden');

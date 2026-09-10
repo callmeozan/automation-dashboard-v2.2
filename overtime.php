@@ -737,23 +737,6 @@ $extraHead = '
             }
         })();
 
-        // 1. HITUNG DURASI OTOMATIS (Modal Create & Edit)
-        // function calculateDuration(type = 'add') {
-        //     const prefix = type === 'edit' ? 'edit_' : 't_';
-        //     const startVal = document.getElementById(type === 'edit' ? 'edit_start' : 't_start').value;
-        //     const endVal = document.getElementById(type === 'edit' ? 'edit_end' : 't_end').value;
-        //     const display = document.getElementById(type === 'edit' ? 'edit_duration' : 'duration_preview');
-
-        //     if (startVal && endVal) {
-        //         let start = new Date("2000-01-01 " + startVal);
-        //         let end = new Date("2000-01-01 " + endVal);
-        //         if (end < start) end.setDate(end.getDate() + 1); // Lewat tengah malam
-
-        //         let diffHrs = (end - start) / (1000 * 60 * 60);
-        //         if (diffHrs > 4) diffHrs -= 1; // Potong istirahat 1 jam jika > 4 jam
-        //         display.innerText = diffHrs.toFixed(1) + " Jam";
-        //     }
-        // }
         function calculateDuration(type = 'add') {
             const dateVal = document.getElementById('t_date').value;
             const startVal = document.getElementById('t_start').value;
@@ -790,35 +773,6 @@ $extraHead = '
             }
         }
 
-        // --- FUNGSI HITUNG DURASI KHUSUS MODAL EDIT ---
-        // function calculateEditDuration() {
-        //     const startVal = document.getElementById('edit_start').value;
-        //     const endVal = document.getElementById('edit_end').value;
-        //     const display = document.getElementById('edit_duration');
-
-        //     if (startVal && endVal) {
-        //         let start = new Date("2000-01-01 " + startVal);
-        //         let end = new Date("2000-01-01 " + endVal);
-
-        //         // Handle jika lembur melewati tengah malam (misal: 22:00 - 02:00)
-        //         if (end < start) {
-        //             end.setDate(end.getDate() + 1);
-        //         }
-
-        //         let diffMs = end - start;
-        //         let diffHrs = diffMs / (1000 * 60 * 60); // Konversi ke jam
-
-        //         // --- LOGIKA POTONG ISTIRAHAT 1 JAM ---
-        //         // Jika durasi kerja lebih dari 4 jam, otomatis potong 1 jam istirahat
-        //         if (diffHrs > 4) {
-        //             diffHrs = diffHrs - 1;
-        //         }
-
-        //         display.innerText = diffHrs.toFixed(1) + " Jam";
-        //     } else {
-        //         display.innerText = "0.0 Jam";
-        //     }
-        // }
         function calculateEditDuration() {
             const dateVal = document.getElementById('edit_date').value;
             const startVal = document.getElementById('edit_start').value;

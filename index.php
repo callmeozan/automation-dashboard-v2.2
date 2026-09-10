@@ -75,13 +75,8 @@ if (isset($_SESSION['user_id'])) {
         </script>
 </head>
 
-<!-- <body class="bg-slate-950 text-slate-200 font-sans antialiased h-screen flex items-center justify-center relative overflow-hidden"> -->
-<!-- <body class="bg-slate-950 text-slate-200 font-sans antialiased min-h-screen flex items-center justify-center relative overflow-x-hidden pb-32 md:pb-0 pt-4 md:pt-0"> -->
 <body class="bg-slate-950 text-slate-200 font-sans antialiased min-h-screen w-full flex items-center justify-center relative overflow-x-hidden p-4 md:p-0">
 
-    <!-- <div class="absolute top-0 -left-4 w-72 h-72 bg-cyan-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-    <div class="absolute top-0 -right-4 w-72 h-72 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div> -->
     <div class="absolute -top-[20%] -left-[10%] w-[40rem] h-[40rem] bg-emerald-500/20 rounded-full blur-[120px] pointer-events-none"></div>
     <div class="absolute -bottom-[20%] -right-[10%] w-[40rem] h-[40rem] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
 

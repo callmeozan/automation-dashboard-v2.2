@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $step = 2; // Lanjut ke tahap ganti password
             $nik_verified = $username; // Simpan NIK untuk tahap selanjutnya
         } else {
-            $error = "Data tidak ditemukan! Pastikan NIK dan Nama Lengkap sesuai database.";
+            $error = "Data not found! Please check your ID Number and Full Name against the database.";
         }
     }
 
@@ -35,9 +35,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $update = mysqli_query($conn, "UPDATE tb_users SET password='$md5_pass' WHERE username='$username'");
         
         if ($update) {
-            $success = "Password berhasil diubah! Silakan login.";
+            $success = "Password successfully changed! Please login.";
         } else {
-            $error = "Gagal mengubah password.";
+            $error = "Failed to change password.";
         }
     }
 }
@@ -106,13 +106,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <script>
         <?php if(!empty($error)): ?>
-            Swal.fire({ icon: 'error', title: 'Gagal!', text: '<?php echo $error; ?>', background: '#1e293b', color: '#fff', confirmButtonColor: '#ef4444' });
+            Swal.fire({ icon: 'error', title: 'Failed!', text: '<?php echo $error; ?>', background: '#1e293b', color: '#fff', confirmButtonColor: '#ef4444' });
         <?php endif; ?>
 
         <?php if(!empty($success)): ?>
             Swal.fire({ 
-                icon: 'success', title: 'Berhasil!', text: '<?php echo $success; ?>', 
-                background: '#1e293b', color: '#fff', confirmButtonColor: '#059669', confirmButtonText: 'Login Sekarang' 
+                icon: 'success', title: 'Success!', text: '<?php echo $success; ?>', 
+                background: '#1e293b', color: '#fff', confirmButtonColor: '#059669', confirmButtonText: 'Login Now' 
             }).then(() => { window.location.href = 'index.php'; });
         <?php endif; ?>
     </script>

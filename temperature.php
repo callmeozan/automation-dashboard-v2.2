@@ -85,10 +85,6 @@ $extraHead = '
 
         <div class="p-8 space-y-6 fade-in">
             <div class="space-y-6">
-                <!-- <div class="border-b border-slate-700 pb-4">
-                    <h1 class="text-2xl font-bold text-white mb-1"><i class="fas fa-thermometer-half text-rose-500 mr-2"></i>Motor - Temperature Measurement</h1>
-                    <p class="text-sm text-slate-400">Monitoring suhu elemen (DE, Body, NDE) pada motor secara berkala.</p>
-                </div> -->
                 <div class="mb-6">
                     <div class="mb-4">
                         <!-- <h1 class="text-2xl font-bold text-white mb-1"><i class="fas fa-chart-pie text-cyan-500 mr-2"></i> //Motor - Condition Monitoring</h1>
