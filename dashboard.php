@@ -853,7 +853,7 @@ $extraHead = '
             if (createPlant && createMachine) {
                 createPlant.addEventListener('change', function() {
                     if (this.value === 'RUANG AUTOMATION') {
-                        createMachine.value = 'Ruang Automasi';
+                        createMachine.value = 'Markas Besar JIS Automation';
                     }
                 });
             }

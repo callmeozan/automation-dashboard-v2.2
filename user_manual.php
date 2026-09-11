@@ -92,13 +92,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // 3. Fetch & Group: PLANT -> Area -> Manual Items
-$qData = mysqli_query($conn, "SELECT * FROM tb_manuals ORDER BY plant ASC, area ASC, machine_name ASC");
+$query = mysqli_query($conn, "SELECT * FROM tb_manuals ORDER BY plant ASC, area ASC, machine_name ASC, manual_title ASC");
 $tree = [];
 $totalManuals = 0;
 
-while ($row = mysqli_fetch_assoc($qData)) {
-    $tree[$row['plant']][$row['area']][] = $row;
-    $totalManuals++;
+if ($query) {
+    while ($row = mysqli_fetch_assoc($query)) {
+        $plant   = $row['plant'];
+        $area    = $row['area'];
+        $machine = $row['machine_name'];
+        $tree[$plant][$area][$machine][] = $row;
+        $totalManuals++;
+    }
 }
 
 $pageTitle = "User Manual Books";
@@ -118,6 +123,7 @@ $extraHead = '
 ?>
 <head>
     <meta name="turbo-cache-control" content="no-preview">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <!DOCTYPE html>
@@ -171,100 +177,237 @@ $extraHead = '
                             <p class="text-xs text-slate-500 mt-1">Click the "+ Add Manual" button above to upload a new PDF document.</p>
                         </div>
                     <?php else: ?>
-                        <?php foreach ($tree as $plantName => $areas): ?>
-                            <div class="plant-group bg-slate-800/40 border border-slate-700/80 rounded-xl md:rounded-2xl p-3.5 md:p-6 shadow-xl space-y-4 md:space-y-6">
-                                <!-- Plant Header -->
-                                <div class="flex items-center justify-between border-b border-slate-700/60 pb-2.5">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-cyan-600/20 border border-cyan-500 flex items-center justify-center text-cyan-400 text-xs md:text-sm shrink-0">
+                        <?php 
+                        $plantIndex = 0;
+                        foreach ($tree as $plantName => $areas): 
+                            $plantIndex++;
+                            
+                            // Inisialisasi awal variabel agar tidak pernah bernilai undefined/null
+                            $plantManualCount = 0;
+                            $machinePreviews  = [];
+
+                            // Kumpulkan data mesin & hitung total manual
+                            if (!empty($areas) && is_array($areas)) {
+                                foreach ($areas as $areaKey => $areaVal) {
+                                    if (is_array($areaVal)) {
+                                        foreach ($areaVal as $machineKey => $docVal) {
+                                            if (is_array($docVal)) {
+                                                // Jika struktur 3 level: [Plant][Area][Machine][]
+                                                $machineName = is_string($machineKey) ? $machineKey : ($docVal['machine_name'] ?? '');
+                                                if (!empty($machineName) && !in_array($machineName, $machinePreviews)) {
+                                                    $machinePreviews[] = $machineName;
+                                                }
+                                                $plantManualCount += count($docVal);
+                                            } else {
+                                                // Antisipasi jika struktur masih 2 level: [Plant][Area][]
+                                                $mName = $areaVal['machine_name'] ?? '';
+                                                if (!empty($mName) && !in_array($mName, $machinePreviews)) {
+                                                    $machinePreviews[] = $mName;
+                                                }
+                                                $plantManualCount++;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            $plantCollapseId = "plant-content-" . $plantIndex;
+                            $plantArrowId    = "plant-arrow-" . $plantIndex;
+                        ?>
+                            <div class="plant-group bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/70 hover:border-cyan-500/40 rounded-xl md:rounded-2xl p-4 md:p-5 shadow-lg hover:shadow-cyan-500/5 transition-all duration-200 space-y-4">
+                                
+                                <!-- Header Plant yang Kaya Informasi -->
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none group" 
+                                    onclick="togglePlantCollapse('<?php echo $plantCollapseId; ?>', '<?php echo $plantArrowId; ?>')">
+                                    
+                                    <!-- Kiri: Panah, Icon Pabrik, Nama Plant, & Preview Tags Mesin -->
+                                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                                        <!-- Panah Accordion -->
+                                        <div class="w-6 h-6 rounded-md bg-slate-800 border border-slate-700 group-hover:border-cyan-500/50 flex items-center justify-center text-slate-400 group-hover:text-cyan-400 shrink-0 transition-colors">
+                                            <i class="fas fa-chevron-right text-[11px] transition-transform duration-300 transform rotate-90" id="<?php echo $plantArrowId; ?>"></i>
+                                        </div>
+
+                                        <!-- Icon Pabrik -->
+                                        <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xs shrink-0 shadow-sm">
                                             <i class="fas fa-industry"></i>
                                         </div>
-                                        <h2 class="text-sm md:text-base font-bold text-white tracking-wide truncate"><?php echo htmlspecialchars($plantName); ?></h2>
+                                        
+                                        <!-- Nama Plant & Tags Mesin Mini -->
+                                        <div class="flex items-center gap-2.5 flex-wrap min-w-0">
+                                            <h2 class="text-sm md:text-base font-bold text-white tracking-wide group-hover:text-cyan-300 transition-colors">
+                                                <?php echo htmlspecialchars($plantName); ?>
+                                            </h2>
+
+                                            <!-- Preview Badge Mesin (Hanya muncul jika ada mesin) -->
+                                            <div class="hidden lg:flex items-center gap-1.5 ml-2">
+                                                <?php 
+                                                $previewLimit = 3;
+                                                $safePreviews = is_array($machinePreviews) ? $machinePreviews : [];
+                                                $displayMachines = array_slice($safePreviews, 0, $previewLimit);
+                                                foreach ($displayMachines as $mName): 
+                                                ?>
+                                                    <span class="text-[10px] font-mono text-slate-400 bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded">
+                                                        <?php echo htmlspecialchars($mName); ?>
+                                                    </span>
+                                                <?php endforeach; ?>
+
+                                                <?php if (count($machinePreviews) > $previewLimit): ?>
+                                                    <span class="text-[10px] text-slate-500 bg-slate-900/50 px-1.5 py-0.5 rounded border border-slate-800">
+                                                        +<?php echo count($machinePreviews) - $previewLimit; ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <button onclick="openModalWithPreset('<?php echo htmlspecialchars(addslashes($plantName)); ?>', '')" class="text-[11px] bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white px-2.5 py-1 rounded-md border border-slate-700 hover:border-cyan-500 transition flex items-center gap-1 shrink-0">
-                                        <i class="fas fa-plus text-[9px]"></i> <span>Add</span>
-                                    </button>
-                                </div>
-
-                                <!-- Sub Group: Areas -->
-                                <div class="grid grid-cols-1 gap-6">
-                                    <?php foreach ($areas as $areaName => $manualList): ?>
-                                        <div class="area-group bg-slate-900/60 border border-slate-800 rounded-lg md:rounded-xl p-3 md:p-4 space-y-3">
-                                            <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
-                                            <div class="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 uppercase tracking-wider truncate">
-                                                <i class="fas fa-map-marker-alt text-[10px]"></i>
-                                                <span class="truncate"><?php echo htmlspecialchars($areaName); ?></span>
-                                            </div>
-
-                                            <button onclick="openModalWithPreset('<?php echo htmlspecialchars(addslashes($plantName)); ?>', '<?php echo htmlspecialchars(addslashes($areaName)); ?>')" class="text-[10px] text-slate-400 hover:text-cyan-400 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded transition flex items-center gap-1 shrink-0">
-                                                <i class="fas fa-plus text-[8px]"></i> <span>Add Machine</span>
-                                            </button>
+                                    <!-- Kanan: Badge Total & Tombol Aksi -->
+                                    <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                                        <!-- Badge Total Manual -->
+                                        <div class="flex items-center gap-1.5 text-xs bg-slate-900/90 border border-slate-700/80 px-2.5 py-1 rounded-lg">
+                                            <i class="fas fa-file-pdf text-rose-400 text-[11px]"></i>
+                                            <span class="text-slate-300 font-medium">
+                                                <strong class="text-cyan-400"><?php echo $plantManualCount; ?></strong> Docs
+                                            </span>
                                         </div>
 
-                                            <!-- Machines & Manuals Grid -->
-                                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                <?php foreach ($manualList as $item): 
-                                                    $safe_title   = addslashes(str_replace(array("\r\n", "\r", "\n"), ' ', $item['manual_title']));
-                                                    $safe_machine = addslashes(str_replace(array("\r\n", "\r", "\n"), ' ', $item['machine_name']));
-                                                    $safe_plant   = addslashes($item['plant']);
-                                                    $safe_area    = addslashes($item['area']);
-                                                ?>
-                                                    <div class="manual-item relative bg-slate-900/95 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 group overflow-hidden">
-                                                        <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                                                        <!-- AKSEN GARIS BUSUR MELINGKAR (RADAR / BLUEPRINT RINGS) -->
-                                                        <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full border border-slate-700/30 border-dashed pointer-events-none group-hover:border-cyan-500/20 transition-colors duration-500"></div>
-                                                        <div class="absolute -top-6 -right-6 w-32 h-32 rounded-full border border-slate-700/40 pointer-events-none group-hover:border-cyan-500/30 transition-colors duration-500"></div>
-                                                        <div class="absolute top-0 right-0 w-16 h-16 rounded-full border border-slate-700/20 pointer-events-none group-hover:border-cyan-500/40 transition-colors duration-500"></div>
+                                        <!-- Tombol Add -->
+                                        <button onclick="event.stopPropagation(); openModalWithPreset('<?php echo htmlspecialchars(addslashes($plantName)); ?>', '')" 
+                                                class="text-xs bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white px-3 py-1 rounded-lg border border-slate-700 hover:border-cyan-500 transition flex items-center gap-1.5 shadow-sm">
+                                            <i class="fas fa-plus text-[10px]"></i> <span>Add</span>
+                                        </button>
+                                    </div>
+                                </div>
 
-                                                        <!-- KONTEN UTAMA KARTU -->
-                                                        <div class="relative z-10">
-                                                            <!-- Header Kartu: Badge Mesin & Tombol Aksi Admin -->
-                                                            <div class="flex justify-between items-center mb-3">
-                                                                <span class="font-mono text-xs font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-500/30 px-2.5 py-1 rounded-md tracking-wide">
-                                                                    <?php echo htmlspecialchars($item['machine_name']); ?>
-                                                                </span>
+                                <!-- Kontainer Isi (Area & Grid Mesin) -->
+                                <div id="<?php echo $plantCollapseId; ?>" class="transition-all duration-300 space-y-6 pt-2">
+                                    <div class="grid grid-cols-1 gap-6">
+                                        <?php foreach ($areas as $areaName => $manualList): ?>
+                                            <div class="area-group bg-slate-900/60 border border-slate-800 rounded-lg md:rounded-xl p-3 md:p-4 space-y-3">
+                                                <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                                                    <div class="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 uppercase tracking-wider truncate">
+                                                        <i class="fas fa-map-marker-alt text-[10px]"></i>
+                                                        <span class="truncate"><?php echo htmlspecialchars($areaName); ?></span>
+                                                    </div>
 
-                                                                
-                                                                    <div class="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition">
-                                                                        <!-- TOMBOL EDIT -->
-                                                                        <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars($safe_plant, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_area, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_machine, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_title, ENT_QUOTES); ?>')" 
-                                                                                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition" 
-                                                                                title="Edit Manual">
-                                                                            <i class="fas fa-pen text-xs"></i>
-                                                                        </button> 
+                                                    <button onclick="openModalWithPreset('<?php echo htmlspecialchars(addslashes($plantName)); ?>', '<?php echo htmlspecialchars(addslashes($areaName)); ?>')" class="text-[10px] text-slate-400 hover:text-cyan-400 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded transition flex items-center gap-1 shrink-0">
+                                                        <i class="fas fa-plus text-[8px]"></i> <span>Add Machine</span>
+                                                    </button>
+                                                </div>
 
-                                                                        <!-- TOMBOL DELETE -->
-                                                                        <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" 
-                                                                                class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition" 
-                                                                                title="Delete Manual">
-                                                                            <i class="fas fa-trash-alt text-xs"></i>
+                                                <!-- Machines & Manuals Grid -->
+                                                <!-- Machines Grid (Tampilan Estetik Blueprint + Grouping Mesin) -->
+                                                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-4">
+                                                    <?php foreach ($manualList as $machineName => $docs): ?>
+                                                        <div class="manual-item relative bg-slate-900/95 hover:bg-slate-800/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1 group overflow-hidden">
+                                                            
+                                                            <!-- 1. Garis Gradien Glowing di Atas Kartu -->
+                                                            <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-indigo-500 opacity-60 group-hover:opacity-100 transition-opacity"></div>
+
+                                                            <!-- 2. Aksen Lingkaran Blueprint / Radar -->
+                                                            <div class="absolute -top-12 -right-12 w-44 h-44 rounded-full border border-slate-700/30 border-dashed pointer-events-none group-hover:border-cyan-500/20 transition-colors duration-500"></div>
+                                                            <div class="absolute -top-6 -right-6 w-28 h-28 rounded-full border border-slate-700/40 pointer-events-none group-hover:border-cyan-500/30 transition-colors duration-500"></div>
+
+                                                            <!-- Konten Kartu -->
+                                                            <div class="relative z-0">
+                                                                <!-- Header Mesin & Badge Dokumen -->
+                                                                <div class="flex justify-between items-center mb-3">
+                                                                    <span class="font-mono text-xs font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-500/30 px-2.5 py-1 rounded-md tracking-wide">
+                                                                        <?php echo htmlspecialchars($machineName); ?>
+                                                                    </span>
+
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="text-[11px] font-medium bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700/80">
+                                                                            <strong class="text-emerald-400"><?php echo count($docs); ?></strong> Docs
+                                                                        </span>
+                                                                        
+                                                                        <!-- Tambah manual baru khusus mesin ini -->
+                                                                        <button onclick="openModalWithPreset('<?php echo htmlspecialchars(addslashes($plantName)); ?>', '<?php echo htmlspecialchars(addslashes($areaName)); ?>', '<?php echo htmlspecialchars(addslashes($machineName)); ?>')" 
+                                                                                class="w-6 h-6 flex items-center justify-center rounded bg-slate-800 hover:bg-cyan-600 text-slate-400 hover:text-white transition text-[10px]" 
+                                                                                title="Tambah Dokumen Baru">
+                                                                            <i class="fas fa-plus"></i>
                                                                         </button>
                                                                     </div>
-                                                            
+                                                                </div>
+
+                                                                <!-- Daftar Judul Dokumen (Clean & Readable) -->
+                                                                <div class="space-y-2 my-4">
+                                                                    <?php foreach ($docs as $item): 
+                                                                        $safe_title   = addslashes(str_replace(array("\r\n", "\r", "\n"), ' ', $item['manual_title']));
+                                                                        $safe_machine = addslashes(str_replace(array("\r\n", "\r", "\n"), ' ', $item['machine_name']));
+                                                                        $safe_plant   = addslashes($item['plant']);
+                                                                        $safe_area    = addslashes($item['area']);
+                                                                    ?>
+                                                                        <!-- <div class="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 hover:border-cyan-500/40 flex items-center justify-between gap-3 group/doc transition">
+                                                                            <div class="min-w-0 flex-1">
+                                                                                <h4 class="text-xs font-medium text-slate-200 group-hover/doc:text-cyan-300 truncate transition-colors" title="<?php echo htmlspecialchars($item['manual_title']); ?>">
+                                                                                    <i class="fas fa-file-pdf text-rose-400 mr-1.5 text-[11px]"></i>
+                                                                                    <?php echo htmlspecialchars($item['manual_title']); ?>
+                                                                                </h4>
+                                                                            </div> -->
+                                                                            <div class="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 hover:border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/doc transition">
+                                                                            <div class="min-w-0 flex-1">
+                                                                                <h4 class="text-xs font-medium text-slate-200 group-hover/doc:text-cyan-300 line-clamp-2 leading-relaxed" title="<?php echo htmlspecialchars($item['manual_title']); ?>">
+                                                                                    <i class="fas fa-file-pdf text-rose-400 mr-1.5 text-[11px]"></i>
+                                                                                    <?php echo htmlspecialchars($item['manual_title']); ?>
+                                                                                </h4>
+                                                                            </div>
+
+                                                                            <!-- Tombol Baca & Aksi -->
+                                                                            <!-- <div class="flex items-center gap-1 shrink-0">
+                                                                                <button onclick="previewPdfModal('uploads/manuals/<?php echo urlencode($item['file_pdf']); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" 
+                                                                                        class="px-2.5 py-1 bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/30 rounded-lg text-cyan-400 hover:text-white text-[10px] font-semibold transition" 
+                                                                                        title="Buka PDF">
+                                                                                    <i class="fas fa-book-open mr-1"></i> View
+                                                                                </button>
+
+                                                                                <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars($safe_plant, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_area, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_machine, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_title, ENT_QUOTES); ?>')" 
+                                                                                        class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition text-[10px]" 
+                                                                                        title="Edit Judul/File">
+                                                                                    <i class="fas fa-pen"></i>
+                                                                                </button>
+
+                                                                                <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" 
+                                                                                        class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition text-[10px]" 
+                                                                                        title="Hapus Dokumen">
+                                                                                    <i class="fas fa-trash-alt"></i>
+                                                                                </button>
+                                                                            </div> -->
+                                                                            <div class="flex items-center justify-end gap-1.5 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
+                                                                                <button onclick="previewPdfModal('uploads/manuals/<?php echo urlencode($item['file_pdf']); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" 
+                                                                                        class="px-2.5 py-1 bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/30 rounded-lg text-cyan-400 hover:text-white text-[10px] font-semibold transition" 
+                                                                                        title="Buka PDF">
+                                                                                    <i class="fas fa-book-open mr-1"></i> View
+                                                                                </button>
+                                                                                <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars($safe_plant, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_area, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_machine, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_title, ENT_QUOTES); ?>')" 
+                                                                                        class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition text-[11px]" 
+                                                                                        title="Edit">
+                                                                                    <i class="fas fa-pen"></i>
+                                                                                </button>
+                                                                                <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" 
+                                                                                        class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition text-[11px]" 
+                                                                                        title="Hapus">
+                                                                                    <i class="fas fa-trash-alt"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    <?php endforeach; ?>
+                                                                </div>
                                                             </div>
 
-                                                            <!-- Judul Manual Book -->
-                                                            <h4 class="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors line-clamp-2 leading-snug pr-6" title="<?php echo htmlspecialchars($item['manual_title']); ?>">
-                                                                <?php echo htmlspecialchars($item['manual_title']); ?>
-                                                            </h4>
-                                                        </div>
+                                                            <!-- Footer: Indikator Format -->
+                                                            <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 relative z-0">
+                                                                <span>PDF Documents</span>
+                                                                <span class="text-cyan-400 font-mono text-[10px]">Active</span>
+                                                            </div>
 
-                                                        <!-- Footer Kartu: Indikator & Tombol Baca -->
-                                                        <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between mt-5 relative z-10">
-                                                            <span class="text-[11px] text-slate-500 font-medium">PDF Document</span>
-
-                                                            <button onclick="previewPdfModal('uploads/manuals/<?php echo urlencode($item['file_pdf']); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600/10 hover:bg-red-600 border border-cyan-500/30 rounded-lg text-cyan-400 hover:text-white text-xs font-semibold transition-all active:scale-95 shadow-sm">
-                                                                <i class="fas fa-book-open text-[11px]"></i>
-                                                                <span>View Manual</span>
-                                                            </button>
                                                         </div>
-                                                    </div>
-                                                <?php endforeach; ?>
+                                                    <?php endforeach; ?>
+                                                </div>
                                             </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div> <!-- Akhir Plant Collapse -->
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -285,7 +428,7 @@ $extraHead = '
                     <button onclick="closeModal('modalManual')" class="text-slate-400 hover:text-red-400 transition"><i class="fas fa-times text-xl"></i></button>
                 </div>
 
-                <form action="user_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4" data-turbo="false">
+                <form id="formAddManual" action="user_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4" data-turbo="false">
                     <input type="hidden" name="action" value="create">
 
                     <div>
@@ -298,6 +441,7 @@ $extraHead = '
                             <option value="PLANT D/K">PLANT D/K</option>
                             <option value="PLANT E">PLANT E</option>
                             <option value="PLANT MIXING">PLANT MIXING</option>
+                            <option value="OTHER">OTHER</option>
                         </select>
                     </div>
 
@@ -332,6 +476,23 @@ $extraHead = '
                         </p>
                     </div>
 
+                    <!-- Container Progress Bar (Default Sembunyi / Hidden) -->
+                    <div id="uploadProgressContainer" class="hidden mt-4 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-cyan-400 font-medium flex items-center gap-1.5">
+                                <i class="fas fa-spinner fa-spin text-[11px]"></i>
+                                <span id="uploadStatusText">Mengunggah Dokumen...</span>
+                            </span>
+                            <span id="uploadPercentText" class="font-mono text-slate-300 font-bold">0%</span>
+                        </div>
+                        <!-- Track Bar -->
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-700/60 p-0.5">
+                            <div id="uploadProgressBar" 
+                                class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-150 w-0">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="pt-4 flex gap-3 border-t border-slate-800">
                         <button type="button" onclick="closeModal('modalManual')" class="flex-1 py-2.5 bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-transparent hover:border-red-500/30 rounded-lg text-sm transition">Cancel</button>
                         <button type="submit" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-medium transition shadow-lg shadow-cyan-600/20">Save Manual</button>
@@ -355,7 +516,7 @@ $extraHead = '
                     </button>
                 </div>
 
-                <form action="process/process_edit_manual.php" method="POST" enctype="multipart/form-data" class="space-y-4" data-turbo="false">
+                <form id="formEditManual" action="process/process_edit_manual.php" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="manual_id" id="edit_manual_id">
 
@@ -368,7 +529,7 @@ $extraHead = '
                             <option value="PLANT D/K">PLANT D/K</option>
                             <option value="PLANT E">PLANT E</option>
                             <option value="PLANT MIXING">PLANT MIXING</option>
-                            <option value="RUANG AUTOMATION">MARKAS BESAR</option>
+                            <option value="OTHER">OTHER</option>
                         </select>
                     </div>
 
@@ -401,6 +562,22 @@ $extraHead = '
                         <p class="text-[11px] text-slate-500 mt-1">
                             Maximum file size: <strong class="text-cyan-400">40 MB</strong> (.pdf). If larger, compress the document first.
                         </p>
+                    </div>
+
+                    <!-- Container Progress Bar Khusus Modal Edit -->
+                    <div id="uploadProgressContainerEdit" class="hidden mt-4 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-cyan-400 font-medium flex items-center gap-1.5">
+                                <i class="fas fa-spinner fa-spin text-[11px]"></i>
+                                <span id="uploadStatusTextEdit">Memperbarui Dokumen...</span>
+                            </span>
+                            <span id="uploadPercentTextEdit" class="font-mono text-slate-300 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-700/60 p-0.5">
+                            <div id="uploadProgressBarEdit" 
+                                class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-150 w-0">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="pt-4 flex gap-3 border-t border-slate-800">
@@ -478,7 +655,7 @@ $extraHead = '
             openModal('modalEditManual');
         }
 
-        // 3. Delete Confirmation
+        // 3. Delete Confirmation (Dengan Notifikasi Sukses)
         function confirmDeleteManual(id) {
             Swal.fire({
                 title: 'Delete Manual Document?',
@@ -524,8 +701,45 @@ $extraHead = '
                         }
                     }).then((passResult) => {
                         if (passResult.isConfirmed) {
-                            // Redirect langsung ke file process di folder process/
-                            window.location.href = `process/process_delete_manual.php?id=${id}`;
+                            // Tampilkan indikator proses menghapus sebentar
+                            Swal.fire({
+                                title: 'Deleting...',
+                                text: 'Removing document from server...',
+                                background: '#1e293b',
+                                color: '#fff',
+                                allowOutsideClick: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+
+                            // Eksekusi penghapusan di background
+                            fetch(`process/process_delete_manual.php?id=${id}`)
+                                .then(() => {
+                                    // Munculkan notifikasi sukses SweetAlert
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Deleted!',
+                                        text: 'Manual document has been removed.',
+                                        background: '#1e293b',
+                                        color: '#fff',
+                                        confirmButtonColor: '#0891b2',
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                })
+                                .catch(() => {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Failed!',
+                                        text: 'Failed to delete manual document.',
+                                        background: '#1e293b',
+                                        color: '#fff',
+                                        confirmButtonColor: '#ef4444'
+                                    });
+                                });
                         }
                     });
                 }
@@ -595,6 +809,265 @@ $extraHead = '
                 openModal('modalPdfViewer');
             }
         }
+
+        function togglePlantCollapse(contentId, arrowId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            
+            if (content) {
+                content.classList.toggle('hidden');
+            }
+            if (arrow) {
+                // Rotasi ikon panah 90 derajat saat dibuka/ditutup
+                arrow.classList.toggle('rotate-90');
+            }
+        }
+
+        function initManualUploadBar() {
+            const form = document.getElementById('formAddManual');
+            if (!form || form.dataset.boundProgress) return;
+            form.dataset.boundProgress = "true";
+
+            form.addEventListener('submit', function (e) {
+                const fileInput = document.getElementById('pdf_manual_create');
+
+                // Pastikan berkas PDF telah dipilih
+                if (!fileInput || fileInput.files.length === 0) {
+                    Swal.fire('Please select a PDF file first!');
+                    e.preventDefault();
+                    return;
+                }
+
+                // Tahan submit default browser
+                e.preventDefault();
+
+                const formData = new FormData(form);
+                const progressBox = document.getElementById('uploadProgressContainer');
+                const progressBar = document.getElementById('uploadProgressBar');
+                const percentText = document.getElementById('uploadPercentText');
+                const statusText  = document.getElementById('uploadStatusText');
+                const submitBtn   = form.querySelector('button[type="submit"]');
+
+                // Tampilkan wadah progress bar seketika
+                if (progressBox) progressBox.classList.remove('hidden');
+                if (progressBar) progressBar.style.width = '10%';
+                if (percentText) percentText.innerText = '10%';
+                if (statusText)  statusText.innerText = 'Uploading Document...';
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', form.getAttribute('action') || 'user_manual.php', true);
+
+                // Pantau progres data yang terkirim
+                xhr.upload.onprogress = function (event) {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        const visualPercent = Math.max(percent, 15); // Nilai minimal agar bar langsung bergerak
+                        if (progressBar) progressBar.style.width = visualPercent + '%';
+                        if (percentText) percentText.innerText = visualPercent + '%';
+
+                        if (percent >= 100 && statusText) {
+                            statusText.innerText = 'Saving file to server...';
+                        }
+                    }
+                };
+
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (percentText) percentText.innerText = '100%';
+                        if (statusText)  statusText.innerText = 'Upload Complete!';
+
+                        // 1. Tutup modal form tambah manual
+                        closeModal('modalManual');
+
+                        // 2. Panggil SweetAlert Notification
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Document uploaded successfully.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#0891b2',
+                                timer: 1800,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            // Fallback jika CDN SweetAlert belum termuat
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 600);
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed!',
+                                text: 'Failed to upload document. Please check the file size.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#ef4444'
+                            });
+                        } else {
+                            alert('Failed to upload document.');
+                        }
+                        resetUploadState();
+                    }
+                };
+
+                xhr.onerror = function () {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Connection Error!',
+                        text: 'Failed to upload document. Please check your internet connection.',
+                        background: '#0f172a',
+                        color: '#f8fafc',
+                        confirmButtonColor: '#ef4444'
+                    });
+                    resetUploadState();
+                };
+
+                function resetUploadState() {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (progressBox) progressBox.classList.add('hidden');
+                    if (progressBar) progressBar.style.width = '0%';
+                }
+
+                xhr.send(formData);
+            });
+        }
+
+        function initManualEditBar() {
+            const formEdit = document.getElementById('formEditManual');
+            if (!formEdit || formEdit.dataset.boundEditProgress) return;
+            formEdit.dataset.boundEditProgress = "true";
+
+            formEdit.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const fileInput = document.getElementById('pdf_manual_edit');
+                const hasNewFile = fileInput && fileInput.files.length > 0;
+
+                const formData = new FormData(formEdit);
+                const progressBox = document.getElementById('uploadProgressContainerEdit');
+                const progressBar = document.getElementById('uploadProgressBarEdit');
+                const percentText = document.getElementById('uploadPercentTextEdit');
+                const statusText  = document.getElementById('uploadStatusTextEdit');
+                const submitBtn   = document.getElementById('btnSubmitEditManual') || formEdit.querySelector('button[type="submit"]');
+
+                // Kunci tombol submit
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                // Tampilkan loading bar jika mengunggah file baru
+                if (hasNewFile && progressBox) {
+                    progressBox.classList.remove('hidden');
+                    if (progressBar) progressBar.style.width = '10%';
+                    if (percentText) percentText.innerText = '10%';
+                    if (statusText)  statusText.innerText = 'Uploading file...';
+                }
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', formEdit.getAttribute('action') || 'process/process_edit_manual.php', true);
+
+                if (hasNewFile) {
+                    xhr.upload.onprogress = function (event) {
+                        if (event.lengthComputable) {
+                            const percent = Math.round((event.loaded / event.total) * 100);
+                            const visualPercent = Math.max(percent, 15);
+                            if (progressBar) progressBar.style.width = visualPercent + '%';
+                            if (percentText) percentText.innerText = visualPercent + '%';
+
+                            if (percent >= 100 && statusText) {
+                                statusText.innerText = 'Saving changes to server...';
+                            }
+                        }
+                    };
+                }
+
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (hasNewFile) {
+                            if (progressBar) progressBar.style.width = '100%';
+                            if (percentText) percentText.innerText = '100%';
+                        }
+
+                        closeModal('modalEditManual');
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Manual book updated successfully.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#0891b2',
+                                timer: 1800,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 500);
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed!',
+                                text: 'Failed to update manual document data.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#ef4444'
+                            });
+                        } else {
+                            alert('Failed to update manual document data.');
+                        }
+                        resetEditUi();
+                    }
+                };
+
+                xhr.onerror = function () {
+                    alert('Connection lost while updating file.');
+                    resetEditUi();
+                };
+
+                function resetEditUi() {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (progressBox) progressBox.classList.add('hidden');
+                    if (progressBar) progressBar.style.width = '0%';
+                }
+
+                xhr.send(formData);
+            });
+        }
+
+        // Pasang pemanggilan fungsi di event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            initManualUploadBar();
+            initManualEditBar();
+        });
+        document.addEventListener('turbo:load', function() {
+            initManualUploadBar();
+            initManualEditBar();
+        });
 
         // 5. Live Search Filter
         document.getElementById('manualSearchInput')?.addEventListener('input', function() {

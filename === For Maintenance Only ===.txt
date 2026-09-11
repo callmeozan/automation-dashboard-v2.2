@@ -7,3 +7,6 @@ password : zaanSkuy!123
 
 === Pass Delete MasterItem ===
 password : ozanganteng
+
+=== Pass Delete Maanual ===
+password : tanyapakteguh

@@ -170,9 +170,9 @@ $extraHead = '
                                     while ($row = mysqli_fetch_assoc($query)) {
                                         $id = $row['report_id'];
                                         // 2. Ganti Enter dengan Penanda Unik "_ENTER_"
-                                        $clean_problem = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['problem']);
-                                        $clean_action  = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['action']);
-                                        $clean_part  = str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['sparepart_used'] ?? '');
+                                        $clean_problem = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['problem']));
+                                        $clean_action  = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['action']));
+                                        $clean_part    = addslashes(str_replace(array("\r\n", "\r", "\n"), "_ENTER_", $row['sparepart_used'] ?? ''));
 
                                         // Logika Warna Badge Kategori
                                         $catColor = 'text-slate-400 border-slate-500'; // Default
@@ -253,22 +253,22 @@ $extraHead = '
                                                 ?>
                                                     <div class="flex items-center justify-center gap-2">
                                                         <button onclick="editReport(
-                                                    '<?php echo $row['report_id']; ?>',
-                                                    '<?php echo $row['date_log']; ?>',
-                                                    '<?php echo $row['end_date']; ?>',
-                                                    '<?php echo htmlspecialchars($row['plant'], ENT_QUOTES); ?>',
-                                                    '<?php echo $row['shift']; ?>',
-                                                    '<?php echo $row['time_start']; ?>',
-                                                    '<?php echo $row['time_finish']; ?>',
-                                                    '<?php echo htmlspecialchars($row['machine_name'], ENT_QUOTES); ?>',
-                                                    '<?php echo htmlspecialchars($row['category'], ENT_QUOTES); ?>',
-                                                    '<?php echo $clean_problem; ?>',
-                                                    '<?php echo $clean_action; ?>', 
-                                                    '<?php echo htmlspecialchars($row['pic'], ENT_QUOTES); ?>',
-                                                    '<?php echo $clean_part; ?>',                                                  
-                                                    '<?php echo $row['status']; ?>'
-                                                )" class="bg-slate-700 hover:bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Edit">
-                                                            <i class="fas fa-pen text-xs"></i>
+                                                                '<?php echo $row['report_id']; ?>',
+                                                                '<?php echo $row['date_log']; ?>',
+                                                                '<?php echo $row['end_date']; ?>',
+                                                                '<?php echo htmlspecialchars($row['plant'], ENT_QUOTES); ?>',
+                                                                '<?php echo $row['shift']; ?>',
+                                                                '<?php echo $row['time_start']; ?>',
+                                                                '<?php echo $row['time_finish']; ?>',
+                                                                '<?php echo htmlspecialchars($row['machine_name'], ENT_QUOTES); ?>',
+                                                                '<?php echo htmlspecialchars($row['category'], ENT_QUOTES); ?>',
+                                                                '<?php echo htmlspecialchars($clean_problem, ENT_QUOTES); ?>',
+                                                                '<?php echo htmlspecialchars($clean_action, ENT_QUOTES); ?>', 
+                                                                '<?php echo htmlspecialchars($row['pic'], ENT_QUOTES); ?>',
+                                                                '<?php echo htmlspecialchars($clean_part, ENT_QUOTES); ?>', 
+                                                                '<?php echo $row['status']; ?>'
+                                                            )" class="bg-slate-700 hover:bg-blue-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Edit">
+                                                                        <i class="fas fa-pen text-xs"></i>
                                                         </button>
 
                                                         <button onclick="confirmDeleteReport(<?php echo $row['report_id']; ?>)" class="bg-slate-700 hover:bg-red-600 text-white w-8 h-8 rounded flex items-center justify-center transition" title="Hapus Laporan">
@@ -689,7 +689,7 @@ $extraHead = '
             if (editPlant && editMachine) {
                 editPlant.addEventListener('change', function() {
                     if (this.value === 'RUANG AUTOMATION') {
-                        editMachine.value = 'Ruang Automasi';
+                        editMachine.value = 'Markas Besar JIS Automation';
                     }
                 });
             }
@@ -701,7 +701,7 @@ $extraHead = '
             if (createPlant && createMachine) {
                 createPlant.addEventListener('change', function() {
                     if (this.value === 'RUANG AUTOMATION') {
-                        createMachine.value = 'Ruang Automasi';
+                        createMachine.value = 'Markas Besar JIS Automation';
                     }
                 });
             }
@@ -767,12 +767,12 @@ $extraHead = '
         // --- FUNGSI DELETE REPORT ---
         function confirmDeleteReport(id) {
             Swal.fire({
-                title: 'Hapus Laporan?',
-                text: "Data tidak bisa dikembalikan!",
+                title: 'Delete Report?',
+                text: "Data cannot be recovered!",
                 icon: 'warning',
                 showCancelButton: true,
                 background: '#1e293b', color: '#fff',
-                confirmButtonColor: '#ef4444', confirmButtonText: 'Ya, Hapus!'
+                confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, Delete!'
             }).then((result) => {
                 if (result.isConfirmed) window.location.href = 'delete/delete_report.php?id=' + id;
             });

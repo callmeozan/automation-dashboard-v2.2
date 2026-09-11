@@ -43,7 +43,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   // KUNCI PERBAIKAN: Abaikan request non-HTTP/HTTPS (misal chrome-extension://)
-  if (!url.protocol.startsWith('http')) {
+  if (event.request.url.protocol.startsWith('http')) {
     return;
   }
 
