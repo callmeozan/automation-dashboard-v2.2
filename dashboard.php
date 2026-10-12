@@ -16,20 +16,63 @@ $queryMyReport = mysqli_query($conn, "SELECT * FROM tb_daily_reports WHERE pic L
 
 // C. AMBIL & HANDLE ANNOUNCEMENT UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_update_announcement'])) {
-    if ($_SESSION['role'] === 'admin' || $_SESSION['role'] === 'section') {
+    if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'section'])) {
+        $annId      = !empty($_POST['announcement_id']) ? (int)$_POST['announcement_id'] : null;
         $annTitle   = mysqli_real_escape_string($conn, $_POST['ann_title']);
         $annMessage = mysqli_real_escape_string($conn, $_POST['ann_message']);
         $annTag     = mysqli_real_escape_string($conn, $_POST['ann_tag']);
         $annActive  = isset($_POST['ann_active']) ? 1 : 0;
 
-        mysqli_query($conn, "UPDATE tb_announcements SET title='$annTitle', message='$annMessage', version_tag='$annTag', is_active=$annActive WHERE announcement_id=1");
-        header("Location: dashboard.php?status=updated");
+        // Tangkap input URL (dan label tombol jika ada kolomnya di DB)
+        $rawLink    = trim($_POST['ann_link_url'] ?? '');
+        $annLink    = !empty($rawLink) ? mysqli_real_escape_string($conn, $rawLink) : 'user_manual.php';
+        
+        $rawBtn     = trim($_POST['ann_button_text'] ?? '');
+        $annBtn     = !empty($rawBtn) ? mysqli_real_escape_string($conn, $rawBtn) : 'Check It Out';
+
+        if ($annId) {
+            // Jika ada ID -> UPDATE
+            mysqli_query($conn, "UPDATE tb_announcements 
+                                 SET title='$annTitle', 
+                                     message='$annMessage', 
+                                     version_tag='$annTag', 
+                                     is_active=$annActive,
+                                     link_url='$annLink',
+                                     button_text='$annBtn'
+                                 WHERE announcement_id=$annId");
+        } else {
+            // Jika ID kosong -> INSERT
+            mysqli_query($conn, "INSERT INTO tb_announcements (title, message, version_tag, is_active, link_url, button_text) 
+                                 VALUES ('$annTitle', '$annMessage', '$annTag', $annActive, '$annLink', '$annBtn')");
+        }
+
+        header("Location: dashboard.php?status=saved");
         exit;
     }
 }
 
-$qAnn = mysqli_query($conn, "SELECT * FROM tb_announcements WHERE announcement_id=1 LIMIT 1");
-$annData = mysqli_fetch_assoc($qAnn);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_delete_announcement'])) {
+    if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'section'])) {
+        $annId = (int)$_POST['announcement_id'];
+
+        if ($annId > 0) {
+            mysqli_query($conn, "DELETE FROM tb_announcements WHERE announcement_id = $annId");
+        }
+
+        header("Location: dashboard.php?status=deleted");
+        exit;
+    }
+}
+
+// Ambil semua pengumuman (diurutkan dari yang terbaru)
+$qAnn = mysqli_query($conn, "SELECT * FROM tb_announcements ORDER BY announcement_id DESC");
+$annList = [];
+while ($row = mysqli_fetch_assoc($qAnn)) {
+    // Tampilkan jika status aktif, atau jika role adalah admin/section
+    if ($row['is_active'] == 1 || in_array($_SESSION['role'] ?? '', ['admin', 'section'])) {
+        $annList[] = $row;
+    }
+}
 
 // 3. SETTING TAMPILAN LAYOUT (HEADER & HEAD)
 $pageTitle = "Departement Performance";
@@ -89,6 +132,7 @@ $extraHead = '
 
 <head>
     <meta name="turbo-cache-control" content="no-preview">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <!DOCTYPE html>
@@ -108,59 +152,104 @@ $extraHead = '
          <?php include 'layouts/header.php'; ?>
 
             <div class="p-8 space-y-8 fade-in">
-                <!-- ANNOUNCEMENT BANNER UPDATE (COLLAPSIBLE & DISMISSIBLE) -->
-                <?php if (!empty($annData) && ($annData['is_active'] == 1 || $_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section')): ?>
-                    <div id="announcementBox" class="relative bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/30 rounded-2xl p-5 shadow-xl transition-all duration-300 overflow-hidden group">
+                <!-- ANNOUNCEMENT BANNER (MULTI-SLIDER) -->
+                <?php if (!empty($annList)): ?>
+                    <div id="announcementBox" class="relative bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 border border-cyan-500/30 rounded-2xl p-5 shadow-xl transition-all duration-300 overflow-hidden group mb-6">
                         <div class="absolute -right-12 -top-12 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-                        <!-- Bar Header & Tombol Kontrol Kanan Atas -->
-                        <div class="flex items-center justify-between gap-3 mb-2">
+                        <!-- Header: Navigasi Slider (Kiri) & Kontrol Banner (Kanan) -->
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <!-- Navigasi Slide -->
                             <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 rounded-full">
-                                    <?php echo htmlspecialchars($annData['version_tag']); ?>
-                                </span>
-                                <?php if ($annData['is_active'] == 0): ?>
-                                    <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">Hidden from Users</span>
+                                <?php if (count($annList) > 1): ?>
+                                    <div class="flex items-center gap-1.5 bg-slate-950/40 px-2.5 py-1 rounded-full border border-slate-800/80">
+                                        <?php foreach ($annList as $i => $item): ?>
+                                            <button type="button" 
+                                                    onclick="showAnnouncementSlide(<?php echo $i; ?>)" 
+                                                    class="ann-dot h-1.5 rounded-full transition-all duration-300 <?php echo $i === 0 ? 'w-5 bg-cyan-400' : 'w-1.5 bg-slate-600 hover:bg-slate-400'; ?>" 
+                                                    title="Slide <?php echo $i + 1; ?>">
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
                                 <?php endif; ?>
                             </div>
 
-                            <!-- Kontrol: Edit (Admin), Minimize, Close -->
+                            <!-- Kontrol: Edit, Minimize, Close -->
                             <div class="flex items-center gap-1.5 z-10">
-                                <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
-                                    <button onclick="openModal('modalEditAnnouncement')" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-lg text-xs transition" title="Edit Announcement">
+                                <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'section'])): ?>
+                                    <button type="button" onclick="openNewAnnouncementModal()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-lg text-xs transition" title="Add New Announcement">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    
+                                    <button type="button" onclick="editCurrentAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 rounded-lg text-xs transition" title="Edit Pengumuman Ini">
                                         <i class="fas fa-pen"></i>
                                     </button>
                                 <?php endif; ?>
 
-                                <!-- Tombol Minimize -->
-                                <button onclick="toggleMinimizeAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg text-xs transition" title="Minimize / Expand">
+                                <button type="button" onclick="toggleMinimizeAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg text-xs transition" title="Minimize / Expand">
                                     <i id="annMinimizeIcon" class="fas fa-chevron-up"></i>
                                 </button>
 
-                                <!-- Tombol Close (Sembunyikan) -->
-                                <button onclick="dismissAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg text-xs transition" title="Close">
+                                <button type="button" onclick="dismissAnnouncement()" class="w-7 h-7 flex items-center justify-center bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg text-xs transition" title="Close">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Isi Konten yang Bisa Diciutkan -->
-                        <div id="annBodyContent" class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300">
-                            <div class="flex items-start gap-4">
-                                <div class="w-11 h-11 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl shrink-0 shadow-inner">
-                                    <i class="fas fa-bullhorn"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-white font-bold text-base"><?php echo htmlspecialchars($annData['title']); ?></h3>
-                                    <p class="text-slate-400 text-xs mt-1 leading-relaxed max-w-3xl"><?php echo nl2br(htmlspecialchars($annData['message'])); ?></p>
-                                </div>
-                            </div>
+                        <!-- Wadah Konten Pengumuman -->
+                        <div id="annBodyContent" class="transition-all duration-300">
+                            <?php foreach ($annList as $idx => $ann): 
+                                $annLink = !empty($ann['link_url']) ? $ann['link_url'] : 'user_manual.php';
+                                $annBtn  = !empty($ann['button_text']) ? $ann['button_text'] : 'Check It Out';
+                            ?>
+                                <div class="ann-slide-item <?php echo $idx !== 0 ? 'hidden' : ''; ?>"
+                                    data-id="<?php echo $ann['announcement_id']; ?>"
+                                    data-version="<?php echo htmlspecialchars($ann['version_tag'] ?? ''); ?>"
+                                    data-title="<?php echo htmlspecialchars($ann['title'] ?? ''); ?>"
+                                    data-message="<?php echo htmlspecialchars($ann['message'] ?? ''); ?>"
+                                    data-active="<?php echo $ann['is_active'] ?? 1; ?>"
+                                    data-link="<?php echo htmlspecialchars($annLink); ?>"
+                                    data-btn-text="<?php echo htmlspecialchars($annBtn); ?>">
+                                    
+                                    <!-- Badge Versi & Status -->
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 rounded-full">
+                                            <?php echo htmlspecialchars($ann['version_tag'] ?? 'Update'); ?>
+                                        </span>
+                                        <?php if (($ann['is_active'] ?? 1) == 0): ?>
+                                            <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">Hidden from Users</span>
+                                        <?php endif; ?>
+                                    </div>
 
-                            <div class="self-end md:self-center shrink-0">
-                                <a href="user_manual.php" class="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-600/20 transition flex items-center gap-1.5">
-                                    <span>Check It Out</span> <i class="fas fa-arrow-right text-[10px]"></i>
-                                </a>
-                            </div>
+                                    <!-- Layout Isi Pengumuman & Tombol Aksi -->
+                                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                        <!-- Teks & Ikon -->
+                                        <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                                            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg shrink-0 shadow-inner">
+                                                <i class="fas fa-bullhorn"></i>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <h3 class="text-white font-bold text-sm md:text-base leading-snug truncate">
+                                                    <?php echo htmlspecialchars($ann['title'] ?? '-'); ?>
+                                                </h3>
+                                                <p class="text-slate-400 text-xs mt-1 leading-relaxed line-clamp-2">
+                                                    <?php echo nl2br(htmlspecialchars($ann['message'] ?? '')); ?>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tombol Aksi -->
+                                        <div class="shrink-0 self-start md:self-center">
+                                            <a href="<?php echo htmlspecialchars($annLink); ?>" 
+                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-600/20 transition whitespace-nowrap">
+                                                <span><?php echo htmlspecialchars($annBtn); ?></span> 
+                                                <i class="fas fa-arrow-right text-[10px]"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -439,7 +528,7 @@ $extraHead = '
                         <h3 class="text-xl font-bold text-white flex items-center gap-2">
                             <i class="fas fa-edit text-emerald-400"></i> Input Daily Activity
                         </h3>
-                        <p class="text-xs text-slate-500 mt-1">Silakan isi log aktivitas pekerjaan secara detail.</p>
+                        <p class="text-xs text-slate-500 mt-1">Please fill in the daily activity log in detail.</p>
                     </div>
                     <button class="close-modal text-slate-400 hover:text-red-400 transition">
                         <i class="fas fa-times text-xl"></i>
@@ -460,13 +549,15 @@ $extraHead = '
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">3. Plant / Area</label>
                             <select name="plant" id="create_plant" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
-                                <option value="">-- Pilih --</option>
+                                <option value="">-- Select --</option>
                                 <option value="PLANT A">PLANT A</option>
                                 <option value="PLANT BCHIT">PLANT BCHIT</option>
-                                <option value="PLANT D/K">PLANT D/K</option>
+                                <option value="PLANT PCR">PLANT PCR</option>
                                 <option value="PLANT E">PLANT E</option>
                                 <option value="PLANT TBR">PLANT TBR</option>
                                 <option value="PLANT MIXING">PLANT MIXING</option>
+                                <option value="PLANT RND">PLANT RND</option>
+                                <option value="LABORATORIUM">LABORATORIUM</option>
                                 <option value="RUANG AUTOMATION">MARKAS BESAR</option>
                             </select>
                         </div>
@@ -502,10 +593,16 @@ $extraHead = '
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">8. Category</label>
                             <select name="category" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                                <option value="">-- Select --</option>
+                                <option value="Service">🛠️ Service</option>
+                                <option value="Commissioning">🔀 Commissioning</option>
+                                <option value="Improvement">✨ Improvement</option>
                                 <option value="Breakdown">🛑 Breakdown / Trouble</option>
+                                <option value="Project Preparation">📋 Project Preparation</option>
+                                <option value="Project Execution">⚙️ Project Execution</option>
                                 <option value="PM">🔧 Preventive Maintenance</option>
-                                <option value="Project">🚀 Project Implementation</option>
-                                <option value="Other">📋 Other / Meeting</option>
+                                <option value="Meeting">👥 Meeting</option>
+                                <option value="Other">👩🏻‍💻 Other</option>
                             </select>
                         </div>
                     </div>
@@ -513,7 +610,7 @@ $extraHead = '
                     <div>
                         <label class="block text-xs text-slate-400 mb-1 font-medium">9. Person / PIC</label>
                         <select name="pic[]" id="create_pic_dashboard" multiple placeholder="Pilih Teknisi..." autocomplete="off">
-                            <option value="">Pilih Personil...</option>
+                            <option value="">-- Select --</option>
                             <?php
                             // Pastikan $teamList sudah ada di bagian paling atas file PHP
                             if (isset($teamList)) {
@@ -787,7 +884,7 @@ $extraHead = '
     </div>
 
     <!-- MODAL FORM EDIT ANNOUNCEMENT -->
-    <?php if ($_SESSION['role'] == 'admin' || $_SESSION['role'] == 'section'): ?>
+    <?php if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'section'])): ?>
         <div id="modalEditAnnouncement" class="fixed inset-0 z-50 hidden">
             <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onclick="closeModal('modalEditAnnouncement')"></div>
             <div class="relative flex items-center justify-center min-h-screen p-4">
@@ -801,30 +898,57 @@ $extraHead = '
 
                     <form action="dashboard.php" method="POST" class="space-y-4">
                         <input type="hidden" name="action_update_announcement" value="1">
+                        <!-- ID Announcement Dinamis -->
+                        <input type="hidden" name="announcement_id" id="edit_ann_id" value="">
 
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">Tag / Version</label>
-                            <input type="text" name="ann_tag" value="<?php echo htmlspecialchars($annData['version_tag'] ?? 'Update v1.1.0'); ?>" placeholder="e.g. Update v1.1.0" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required>
+                            <input type="text" name="ann_tag" id="edit_ann_tag" placeholder="e.g. Update v1.1.0" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required>
                         </div>
 
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">Announcement Title</label>
-                            <input type="text" name="ann_title" value="<?php echo htmlspecialchars($annData['title'] ?? ''); ?>" placeholder="Announcement heading..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required>
+                            <input type="text" name="ann_title" id="edit_ann_title" placeholder="Announcement heading..." class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required>
                         </div>
 
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">Announcement Message</label>
-                            <textarea name="ann_message" rows="3" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required><?php echo htmlspecialchars($annData['message'] ?? ''); ?></textarea>
+                            <textarea name="ann_message" id="edit_ann_message" rows="3" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none" required></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1 font-medium">Button Label</label>
+                                <input type="text" name="ann_button_text" id="edit_ann_button_text" placeholder="e.g. Check It Out" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1 font-medium">Target URL</label>
+                                <input type="text" name="ann_link_url" id="edit_ann_link_url" placeholder="e.g. daily_report.php" class="w-full bg-slate-950 border border-slate-700 text-white rounded px-3 py-2 text-xs focus:border-cyan-500 focus:outline-none">
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-2 pt-1">
-                            <input type="checkbox" name="ann_active" id="ann_active" value="1" <?php echo (!empty($annData) && $annData['is_active'] == 1) ? 'checked' : ''; ?> class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-600 focus:ring-cyan-500">
-                            <label for="ann_active" class="text-xs text-slate-300 select-none cursor-pointer">Show this banner to all users</label>
+                            <input type="checkbox" name="ann_active" id="edit_ann_active" value="1" class="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-600 focus:ring-cyan-500">
+                            <label for="edit_ann_active" class="text-xs text-slate-300 select-none cursor-pointer">Show this banner to all users</label>
                         </div>
 
-                        <div class="pt-4 flex gap-3 border-t border-slate-800">
-                            <button type="button" onclick="closeModal('modalEditAnnouncement')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs">Cancel</button>
-                            <button type="submit" class="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-600/20">Save & Publish</button>
+                        <div class="pt-4 flex items-center justify-between gap-3 border-t border-slate-800">
+                            <!-- Tombol Hapus (Kiri) -->
+                            <div>
+                                <button type="button" id="btnDeleteAnn" onclick="confirmDeleteAnnouncement()" class="hidden px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                                    <i class="fas fa-trash-alt"></i> <span>Delete</span>
+                                </button>
+                            </div>
+
+                            <!-- Tombol Cancel & Publish (Kanan) -->
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="closeModal('modalEditAnnouncement')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-600/20 transition">
+                                    Publish
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -886,7 +1010,7 @@ $extraHead = '
                 };
 
                 // 1. Inisialisasi PIC (Modal Report) - Multiple
-                setupTomSelect('create_pic_dashboard', true, "Pilih Personil...");
+                setupTomSelect('create_pic_dashboard', true, "Pick Person...");
 
                 // 2. Inisialisasi Lead Engineer (Modal Project) - Single
                 setupTomSelect('create_lead_engineer_dashboard', false, "Pilih Lead Engineer...");
@@ -1040,8 +1164,187 @@ $extraHead = '
 
     // Current Announcement Version dari Server PHP
     (function() {
-        const currentAnnVersion = "<?php echo htmlspecialchars($annData['version_tag'] ?? 'v1.0.0'); ?>";
+        <?php 
+            $latestVersion = !empty($annList) ? ($annList[0]['version_tag'] ?? 'v1.0.0') : 'v1.0.0'; 
+        ?>
+        const latestAnnVersion = "<?php echo htmlspecialchars($latestVersion); ?>";
+        let currentAnnIdx = 0;
 
+        // 1. Fungsi Ganti Slide & Dots
+        window.showAnnouncementSlide = function(index) {
+            const slides = document.querySelectorAll('.ann-slide-item');
+            const dots = document.querySelectorAll('.ann-dot');
+            if (!slides.length) return;
+
+            if (index >= slides.length) currentAnnIdx = 0;
+            else if (index < 0) currentAnnIdx = slides.length - 1;
+            else currentAnnIdx = index;
+
+            slides.forEach((el, i) => {
+                el.classList.toggle('hidden', i !== currentAnnIdx);
+            });
+
+            dots.forEach((dot, i) => {
+                if (i === currentAnnIdx) {
+                    dot.className = "ann-dot h-1.5 w-5 bg-cyan-400 rounded-full transition-all duration-300";
+                } else {
+                    dot.className = "ann-dot h-1.5 w-1.5 bg-slate-600 hover:bg-slate-400 rounded-full transition-all duration-300";
+                }
+            });
+
+            // --- Tambahan Baru: Update Link & Teks Tombol Aksi ---
+            const activeSlide = slides[currentAnnIdx];
+            const actionBtn   = document.getElementById('annActionBtn');
+            const btnTextSpan = document.getElementById('annBtnText');
+
+            if (activeSlide && actionBtn) {
+                const linkUrl = activeSlide.dataset.link ? activeSlide.dataset.link.trim() : '';
+                const btnText = activeSlide.dataset.btnText || 'Check It Out';
+
+                if (linkUrl !== '') {
+                    actionBtn.classList.remove('hidden');
+                    actionBtn.href = linkUrl;
+                    if (btnTextSpan) btnTextSpan.textContent = btnText;
+                } else {
+                    actionBtn.classList.add('hidden'); // Sembunyikan tombol jika link dikosongkan
+                }
+            }
+        };
+
+        // Panggil sekali agar slide awal langsung sinkron saat halaman baru dibuka
+        showAnnouncementSlide(0);
+
+        // Auto ganti slide setiap 6 detik jika pengumuman lebih dari 1
+        if (document.querySelectorAll('.ann-slide-item').length > 1) {
+            setInterval(() => {
+                showAnnouncementSlide(currentAnnIdx + 1);
+            }, 6000);
+        }
+
+        window.nextAnnouncement = function() {
+            showAnnouncementSlide(currentAnnIdx + 1);
+        };
+
+        window.prevAnnouncement = function() {
+            showAnnouncementSlide(currentAnnIdx - 1);
+        };
+
+        // 2. Fungsi Buka Modal Edit
+        window.editCurrentAnnouncement = function() {
+            const slides = document.querySelectorAll('.ann-slide-item');
+            const activeSlide = slides[currentAnnIdx];
+            if (!activeSlide) return;
+
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val ?? '';
+            };
+
+            setVal('edit_ann_id', activeSlide.dataset.id);
+            setVal('edit_ann_tag', activeSlide.dataset.version);
+            setVal('edit_ann_title', activeSlide.dataset.title);
+            setVal('edit_ann_message', activeSlide.dataset.message);
+            // Tambahan untuk Label Tombol dan URL Target:
+            setVal('edit_ann_button_text', activeSlide.dataset.btnText || 'Check It Out');
+            setVal('edit_ann_link_url', activeSlide.dataset.link || 'user_manual.php');
+
+            const checkActive = document.getElementById('edit_ann_active');
+            if (checkActive) {
+                checkActive.checked = (activeSlide.dataset.active == '1');
+            }
+
+            const modalTitle = document.querySelector('#modalEditAnnouncement h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<i class="fas fa-bullhorn text-cyan-400"></i> Edit Announcement';
+            }
+
+            // Tampilkan tombol Hapus saat mode Edit
+            const btnDel = document.getElementById('btnDeleteAnn');
+            if (btnDel) btnDel.classList.remove('hidden');
+
+            if (typeof openModal === 'function') {
+                openModal('modalEditAnnouncement');
+            }
+        };
+
+        // 3. Fungsi Tambah Pengumuman Baru
+        window.openNewAnnouncementModal = function() {
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.value = val ?? '';
+            };
+
+            setVal('edit_ann_id', '');
+            setVal('edit_ann_tag', '');
+            setVal('edit_ann_title', '');
+            setVal('edit_ann_message', '');
+            // Reset nilai default untuk Tombol dan URL:
+            setVal('edit_ann_button_text', 'Check It Out');
+            setVal('edit_ann_link_url', 'user_manual.php');
+
+            const checkActive = document.getElementById('edit_ann_active');
+            if (checkActive) checkActive.checked = true;
+
+            const modalTitle = document.querySelector('#modalEditAnnouncement h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = '<i class="fas fa-plus text-cyan-400"></i> New Announcement';
+            }
+
+            // Sembunyikan tombol Hapus saat Tambah Baru
+            const btnDel = document.getElementById('btnDeleteAnn');
+            if (btnDel) btnDel.classList.add('hidden');
+
+            if (typeof openModal === 'function') {
+                openModal('modalEditAnnouncement');
+            }
+        };
+
+        // 4. Fungsi Konfirmasi Hapus
+        window.confirmDeleteAnnouncement = function() {
+            const annId = document.getElementById('edit_ann_id').value;
+            if (!annId) return;
+
+            Swal.fire({
+                title: 'Delete Announcement?',
+                text: 'This announcement will be deleted permanently.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#334155',
+                confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Yes, Delete',
+                cancelButtonText: 'Cancel',
+                background: '#0f172a',
+                color: '#f8fafc',
+                customClass: {
+                    popup: 'border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-md',
+                    confirmButton: 'px-4 py-2 text-xs font-semibold rounded-lg',
+                    cancelButton: 'px-4 py-2 text-xs font-semibold rounded-lg'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'dashboard.php';
+
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action_delete_announcement';
+                    actionInput.value = '1';
+
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'announcement_id';
+                    idInput.value = annId;
+
+                    form.appendChild(actionInput);
+                    form.appendChild(idInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        };
+
+        // 5. Fungsi Minimize / Expand
         window.toggleMinimizeAnnouncement = function() {
             const content = document.getElementById('annBodyContent');
             const icon = document.getElementById('annMinimizeIcon');
@@ -1052,31 +1355,32 @@ $extraHead = '
                 icon.classList.toggle('fa-chevron-up', !isHidden);
                 icon.classList.toggle('fa-chevron-down', isHidden);
             }
-            localStorage.setItem('ann_minimized_' + currentAnnVersion, isHidden ? 'true' : 'false');
+            localStorage.setItem('ann_minimized_' + latestAnnVersion, isHidden ? 'true' : 'false');
         };
 
+        // 6. Fungsi Dismiss Sementara
         window.dismissAnnouncement = function() {
             const box = document.getElementById('announcementBox');
             if (box) {
                 box.classList.add('hidden');
                 const today = new Date().toISOString().split('T')[0];
                 localStorage.setItem('ann_dismissed_date', today);
-                localStorage.setItem('ann_last_version', currentAnnVersion);
+                localStorage.setItem('ann_last_version', latestAnnVersion);
             }
         };
 
-        // Inisialisasi status banner
+        // 7. Inisialisasi Status Banner Saat Load
         const today = new Date().toISOString().split('T')[0];
         const dismissedDate = localStorage.getItem('ann_dismissed_date');
         const lastVersion = localStorage.getItem('ann_last_version');
 
-        if (lastVersion === currentAnnVersion && dismissedDate === today) {
+        if (lastVersion === latestAnnVersion && dismissedDate === today) {
             const box = document.getElementById('announcementBox');
             if (box) box.classList.add('hidden');
             return;
         }
 
-        if (localStorage.getItem('ann_minimized_' + currentAnnVersion) === 'true') {
+        if (localStorage.getItem('ann_minimized_' + latestAnnVersion) === 'true') {
             const content = document.getElementById('annBodyContent');
             const icon = document.getElementById('annMinimizeIcon');
             if (content && icon) {

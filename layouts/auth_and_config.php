@@ -33,7 +33,10 @@ $cOD = mysqli_num_rows($qOD);
 $totalNotif = $cBD + $cOD; // Sekarang $totalNotif sudah "Lahir" di awal!
 
 // 4. DATA TEAM LIST (Sering dipakai di dropdown modal berbagai halaman)
-$queryUsers = mysqli_query($conn, "SELECT short_name FROM tb_users WHERE short_name IS NOT NULL AND short_name != '' AND role != 'admin'");
+$queryUsers = mysqli_query($conn, "SELECT short_name FROM tb_users 
+                                   WHERE short_name IS NOT NULL 
+                                     AND short_name != '' 
+                                     AND is_field_member = 1");
 $teamList = [];
 while ($u = mysqli_fetch_assoc($queryUsers)) {
     $teamList[] = $u['short_name'];
