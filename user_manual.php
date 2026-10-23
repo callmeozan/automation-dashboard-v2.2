@@ -338,13 +338,6 @@ $extraHead = '
                                                                         $safe_plant   = addslashes($item['plant']);
                                                                         $safe_area    = addslashes($item['area']);
                                                                     ?>
-                                                                        <!-- <div class="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 hover:border-cyan-500/40 flex items-center justify-between gap-3 group/doc transition">
-                                                                            <div class="min-w-0 flex-1">
-                                                                                <h4 class="text-xs font-medium text-slate-200 group-hover/doc:text-cyan-300 truncate transition-colors" title="<?php echo htmlspecialchars($item['manual_title']); ?>">
-                                                                                    <i class="fas fa-file-pdf text-rose-400 mr-1.5 text-[11px]"></i>
-                                                                                    <?php echo htmlspecialchars($item['manual_title']); ?>
-                                                                                </h4>
-                                                                            </div> -->
                                                                             <div class="p-2.5 bg-slate-950/70 rounded-xl border border-slate-800 hover:border-cyan-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 group/doc transition">
                                                                             <div class="min-w-0 flex-1">
                                                                                 <h4 class="text-xs font-medium text-slate-200 group-hover/doc:text-cyan-300 line-clamp-2 leading-relaxed" title="<?php echo htmlspecialchars($item['manual_title']); ?>">
@@ -352,27 +345,6 @@ $extraHead = '
                                                                                     <?php echo htmlspecialchars($item['manual_title']); ?>
                                                                                 </h4>
                                                                             </div>
-
-                                                                            <!-- Tombol Baca & Aksi -->
-                                                                            <!-- <div class="flex items-center gap-1 shrink-0">
-                                                                                <button onclick="previewPdfModal('uploads/manuals/<?php echo urlencode($item['file_pdf']); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" 
-                                                                                        class="px-2.5 py-1 bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/30 rounded-lg text-cyan-400 hover:text-white text-[10px] font-semibold transition" 
-                                                                                        title="Buka PDF">
-                                                                                    <i class="fas fa-book-open mr-1"></i> View
-                                                                                </button>
-
-                                                                                <button onclick="openEditManual('<?php echo $item['manual_id']; ?>', '<?php echo htmlspecialchars($safe_plant, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_area, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_machine, ENT_QUOTES); ?>', '<?php echo htmlspecialchars($safe_title, ENT_QUOTES); ?>')" 
-                                                                                        class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition text-[10px]" 
-                                                                                        title="Edit Judul/File">
-                                                                                    <i class="fas fa-pen"></i>
-                                                                                </button>
-
-                                                                                <button onclick="confirmDeleteManual('<?php echo $item['manual_id']; ?>')" 
-                                                                                        class="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition text-[10px]" 
-                                                                                        title="Hapus Dokumen">
-                                                                                    <i class="fas fa-trash-alt"></i>
-                                                                                </button>
-                                                                            </div> -->
                                                                             <div class="flex items-center justify-end gap-1.5 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
                                                                                 <button onclick="previewPdfModal('uploads/manuals/<?php echo urlencode($item['file_pdf']); ?>', '<?php echo htmlspecialchars(addslashes($item['manual_title'])); ?>')" 
                                                                                         class="px-2.5 py-1 bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/30 rounded-lg text-cyan-400 hover:text-white text-[10px] font-semibold transition" 

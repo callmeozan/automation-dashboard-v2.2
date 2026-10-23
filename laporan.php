@@ -473,7 +473,7 @@ $extraHead = '
                     </button>
                 </div>
 
-                <form action="process/process_add_report.php" method="POST" enctype="multipart/form-data" class="space-y-5">
+                <form id="formAddReport" action="process/process_add_report.php" method="POST" enctype="multipart/form-data" class="space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">1. Start Date</label>
@@ -590,6 +590,23 @@ $extraHead = '
                         </div>
                     </div>
 
+                    <!-- Container Progress Bar (Default Sembunyi / Hidden) -->
+                    <div id="uploadProgressContainer" class="hidden mt-4 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-cyan-400 font-medium flex items-center gap-1.5">
+                                <i class="fas fa-spinner fa-spin text-[11px]"></i>
+                                <span id="uploadStatusText">Mengunggah Dokumen...</span>
+                            </span>
+                            <span id="uploadPercentText" class="font-mono text-slate-300 font-bold">0%</span>
+                        </div>
+                        <!-- Track Bar -->
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-700/60 p-0.5">
+                            <div id="uploadProgressBar" 
+                                class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-150 w-0">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="pt-4 flex gap-3 border-t border-slate-800">
                         <button type="button" class="close-modal flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-sm">Batal</button>
                         <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm font-medium shadow-lg shadow-emerald-600/20">
@@ -616,7 +633,7 @@ $extraHead = '
                     </button>
                 </div>
 
-                <form action="process/process_edit_report.php" method="POST" enctype="multipart/form-data" class="space-y-5">
+                <form id="formEditReport" action="process/process_edit_report.php" method="POST" enctype="multipart/form-data" class="space-y-5">
 
                     <input type="hidden" name="report_id" id="edit_id">
 
@@ -743,6 +760,22 @@ $extraHead = '
                                 </div>
                                 <input id="file_evidence_edit" type="file" name="evidence[]" multiple accept="image/*,.pdf" class="hidden" />
                             </label>
+                        </div>
+                    </div>
+
+                    <!-- Container Progress Bar Khusus Modal Edit -->
+                    <div id="uploadProgressContainerEdit" class="hidden mt-4 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-cyan-400 font-medium flex items-center gap-1.5">
+                                <i class="fas fa-spinner fa-spin text-[11px]"></i>
+                                <span id="uploadStatusTextEdit">Memperbarui Dokumen...</span>
+                            </span>
+                            <span id="uploadPercentTextEdit" class="font-mono text-slate-300 font-bold">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-700/60 p-0.5">
+                            <div id="uploadProgressBarEdit" 
+                                class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-150 w-0">
+                            </div>
                         </div>
                     </div>
 
@@ -1080,17 +1113,6 @@ $extraHead = '
             });
         }
 
-        // --- E. FUNGSI DOWNLOAD EXCEL ---
-        // function downloadExcel() {
-        //     const searchVal = document.getElementById('searchInput')?.value || '';
-        //     const startVal = document.getElementById('startDate')?.value || '';
-        //     const endVal = document.getElementById('endDate')?.value || '';
-        //     let url = 'export/export_laporan.php?export=true';
-        //     if (searchVal) url += '&search=' + encodeURIComponent(searchVal);
-        //     if (startVal) url += '&start=' + encodeURIComponent(startVal);
-        //     if (endVal) url += '&end=' + encodeURIComponent(endVal);
-        //     window.location.href = url;
-        // }
         function downloadExcel() {
             // Ambil nilai dari input filter di dashboard
             const searchVal = document.getElementById('searchInput')?.value || document.querySelector('input[placeholder*="Search"]')?.value || '';
@@ -1651,6 +1673,262 @@ $extraHead = '
                 viewEl.classList.remove('hidden');
             }
         }
+
+        function initReportUploadBar() {
+            const form = document.getElementById('formAddReport'); // ID form Daily Report
+            if (!form || form.dataset.boundProgress) return;
+            form.dataset.boundProgress = "true";
+
+            form.addEventListener('submit', function (e) {
+                // Tahan submit default browser agar halaman tidak langsung reload
+                e.preventDefault();
+
+                const formData    = new FormData(form);
+                const progressBox = document.getElementById('uploadProgressContainer');
+                const progressBar = document.getElementById('uploadProgressBar');
+                const percentText = document.getElementById('uploadPercentText');
+                const statusText  = document.getElementById('uploadStatusText');
+                const submitBtn   = form.querySelector('button[type="submit"]');
+
+                // Tampilkan progress bar seketika
+                if (progressBox) progressBox.classList.remove('hidden');
+                if (progressBar) progressBar.style.width = '10%';
+                if (percentText) percentText.innerText = '10%';
+                if (statusText)  statusText.innerText = 'Uploading Report & Evidence...';
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', form.getAttribute('action'), true);
+
+                // Pantau progres data yang terkirim secara real-time
+                xhr.upload.onprogress = function (event) {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        const visualPercent = Math.max(percent, 15);
+                        if (progressBar) progressBar.style.width = visualPercent + '%';
+                        if (percentText) percentText.innerText = visualPercent + '%';
+
+                        if (percent >= 100 && statusText) {
+                            statusText.innerText = 'Saving file to server...';
+                        }
+                    }
+                };
+
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (percentText) percentText.innerText = '100%';
+                        if (statusText)  statusText.innerText = 'Upload Complete!';
+
+                        if (typeof closeModal === 'function') {
+                            closeModal('modalAddReport');
+                        }
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Report saved successfully.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#0891b2',
+                                timer: 1800,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            setTimeout(() => { window.location.reload(); }, 600);
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed!',
+                                text: 'Failed to upload report. Please try again.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#ef4444'
+                            });
+                        } else {
+                            alert('Failed to upload report.');
+                        }
+                        resetUploadState();
+                    }
+                };
+
+                xhr.onerror = function () {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error!',
+                            text: 'Failed to upload report. Please check your network connection.',
+                            background: '#0f172a',
+                            color: '#f8fafc',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    } else {
+                        alert('Connection Error!');
+                    }
+                    resetUploadState();
+                };
+
+                function resetUploadState() {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (progressBox) progressBox.classList.add('hidden');
+                    if (progressBar) progressBar.style.width = '0%';
+                }
+
+                xhr.send(formData);
+            });
+        }
+
+        function initReportEditBar() {
+            const formEdit = document.getElementById('formEditReport');
+            if (!formEdit || formEdit.dataset.boundEditProgress) return;
+            formEdit.dataset.boundEditProgress = "true";
+
+            formEdit.addEventListener('submit', function (e) {
+                e.preventDefault(); // Tahan submit bawaan
+
+                const fileInput  = formEdit.querySelector('input[type="file"]');
+                const hasNewFile = fileInput && fileInput.files.length > 0;
+
+                const formData    = new FormData(formEdit);
+                const progressBox = document.getElementById('uploadProgressContainerEdit');
+                const progressBar = document.getElementById('uploadProgressBarEdit');
+                const percentText = document.getElementById('uploadPercentTextEdit');
+                const statusText  = document.getElementById('uploadStatusTextEdit');
+                const submitBtn   = formEdit.querySelector('button[type="submit"]');
+
+                // Always show progress bar on submit so user gets feedback
+                if (progressBox) progressBox.classList.remove('hidden');
+                if (progressBar) progressBar.style.width = '25%';
+                if (percentText) percentText.innerText = '25%';
+                if (statusText)  statusText.innerText = hasNewFile ? 'Uploading file...' : 'Updating report data...';
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', formEdit.getAttribute('action') || 'process/process_edit_report.php', true);
+
+                // Track upload progress if file is attached
+                if (hasNewFile) {
+                    xhr.upload.onprogress = function (event) {
+                        if (event.lengthComputable) {
+                            const percent = Math.round((event.loaded / event.total) * 100);
+                            const visualPercent = Math.max(percent, 25);
+                            if (progressBar) progressBar.style.width = visualPercent + '%';
+                            if (percentText) percentText.innerText = visualPercent + '%';
+
+                            if (percent >= 100 && statusText) {
+                                statusText.innerText = 'Saving changes to server...';
+                            }
+                        }
+                    };
+                } else {
+                    // Fake visual step if updating text only
+                    setTimeout(() => {
+                        if (progressBar) progressBar.style.width = '75%';
+                        if (percentText) percentText.innerText = '75%';
+                    }, 150);
+                }
+
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (percentText) percentText.innerText = '100%';
+                        if (statusText)  statusText.innerText = 'Updated successfully!';
+
+                        // Give 400ms delay so animation is clearly visible
+                        setTimeout(() => {
+                            if (typeof closeModal === 'function') {
+                                closeModal('modalEditReport');
+                            }
+
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: 'Report updated successfully.',
+                                    background: '#0f172a',
+                                    color: '#f8fafc',
+                                    confirmButtonColor: '#0891b2',
+                                    timer: 1600,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                window.location.reload();
+                            }
+                        }, 400);
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed!',
+                                text: 'Failed to update report.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#ef4444'
+                            });
+                        } else {
+                            alert('Failed to update report.');
+                        }
+                        resetEditUi();
+                    }
+                };
+
+                xhr.onerror = function () {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error!',
+                            text: 'Network error while updating report.',
+                            background: '#0f172a',
+                            color: '#f8fafc',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    } else {
+                        alert('Connection Error!');
+                    }
+                    resetEditUi();
+                };
+
+                function resetEditUi() {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (progressBox) progressBox.classList.add('hidden');
+                    if (progressBar) progressBar.style.width = '0%';
+                }
+
+                xhr.send(formData);
+            });
+        }
+
+        // Pasang pemanggilan fungsi di event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            initReportUploadBar();
+            initReportEditBar();
+        });
+
+        document.addEventListener('turbo:load', function() {
+            initReportUploadBar();
+            initReportEditBar();
+        });
     </script>
 </body>
 

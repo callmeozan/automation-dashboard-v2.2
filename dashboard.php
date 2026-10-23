@@ -523,6 +523,7 @@ $extraHead = '
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" id="backdropLaporan"></div>
         <div class="relative flex items-center justify-center min-h-screen p-4">
             <div class="bg-slate-900 border border-slate-700 w-full max-w-3xl rounded-xl shadow-2xl p-6 relative overflow-y-auto max-h-[90vh] custom-scroll">
+
                 <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
                     <div>
                         <h3 class="text-xl font-bold text-white flex items-center gap-2">
@@ -535,7 +536,7 @@ $extraHead = '
                     </button>
                 </div>
 
-                <form action="process/process_add_report.php" method="POST" enctype="multipart/form-data" class="space-y-5">
+                <form id="formAddReport" action="process/process_add_report.php" method="POST" enctype="multipart/form-data" class="space-y-5">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1 font-medium">1. Start Date</label>
@@ -603,13 +604,14 @@ $extraHead = '
                                 <option value="PM">🔧 Preventive Maintenance</option>
                                 <option value="Meeting">👥 Meeting</option>
                                 <option value="Other">👩🏻‍💻 Other</option>
+
                             </select>
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs text-slate-400 mb-1 font-medium">9. Person / PIC</label>
-                        <select name="pic[]" id="create_pic_dashboard" multiple placeholder="Pilih Teknisi..." autocomplete="off">
+                        <select name="pic[]" id="create_pic_dashboard" multiple placeholder="Pick Person..." autocomplete="off">
                             <option value="">-- Select --</option>
                             <?php
                             // Pastikan $teamList sudah ada di bagian paling atas file PHP
@@ -628,7 +630,8 @@ $extraHead = '
 
                     <div>
                         <label class="block text-xs text-emerald-400 mb-1 font-medium">11. Action Taken (Solusi)</label>
-                        <textarea name="action" rows="2" placeholder="Jelaskan langkah perbaikan..." class="w-full bg-slate-950 border border-emerald-600/50 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required></textarea>
+                        <textarea id="action_taken" name="action" rows="4" placeholder="Jelaskan langkah perbaikan..." 
+                                class="w-full bg-slate-950 border border-emerald-600/50 text-white rounded px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" required></textarea>
                     </div>
 
                     <div>
@@ -642,18 +645,35 @@ $extraHead = '
                             <label for="file_evidence" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-700 border-dashed rounded-lg cursor-pointer bg-slate-950 hover:bg-slate-800 hover:border-emerald-500 transition group">
                                 <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                     <i class="fas fa-cloud-upload-alt text-2xl text-slate-500 mb-2 group-hover:text-emerald-400 transition"></i>
-                                    <p class="text-sm text-slate-400 mb-1"><span class="font-semibold text-emerald-400">Klik untuk upload</span></p>
-                                    <p id="file-name-display" class="text-xs text-emerald-400 mt-2 font-medium hidden"></p>
+                                    <p class="text-sm text-slate-400 mb-1"><span class="font-semibold text-emerald-400">Click to upload</span></p>
+                                    <p id="file-name-create" class="text-xs text-emerald-400 mt-2 font-medium hidden"></p>
                                 </div>
                                 <input id="file_evidence" type="file" name="evidence[]" multiple accept="image/*,.pdf" class="hidden" />
                             </label>
                         </div>
                     </div>
 
+                    <!-- Container Progress Bar (Default Sembunyi / Hidden) -->
+                    <div id="uploadProgressContainer" class="hidden mt-4 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-cyan-400 font-medium flex items-center gap-1.5">
+                                <i class="fas fa-spinner fa-spin text-[11px]"></i>
+                                <span id="uploadStatusText">Mengunggah Dokumen...</span>
+                            </span>
+                            <span id="uploadPercentText" class="font-mono text-slate-300 font-bold">0%</span>
+                        </div>
+                        <!-- Track Bar -->
+                        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-700/60 p-0.5">
+                            <div id="uploadProgressBar" 
+                                class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-150 w-0">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="pt-4 flex gap-3 border-t border-slate-800">
                         <button type="button" class="close-modal flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-sm">Batal</button>
                         <button type="submit" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition text-sm font-medium shadow-lg shadow-emerald-600/20">
-                            <i class="fas fa-save mr-2"></i> Simpan Laporan
+                            <i class="fas fa-save mr-2"></i> Save Report
                         </button>
                     </div>
                 </form>
@@ -1162,6 +1182,131 @@ $extraHead = '
             });
     }
 
+    function initReportUploadBar() {
+            const form = document.getElementById('formAddReport'); // ID form Daily Report
+            if (!form || form.dataset.boundProgress) return;
+            form.dataset.boundProgress = "true";
+
+            form.addEventListener('submit', function (e) {
+                // Tahan submit default browser agar halaman tidak langsung reload
+                e.preventDefault();
+
+                const formData    = new FormData(form);
+                const progressBox = document.getElementById('uploadProgressContainer');
+                const progressBar = document.getElementById('uploadProgressBar');
+                const percentText = document.getElementById('uploadPercentText');
+                const statusText  = document.getElementById('uploadStatusText');
+                const submitBtn   = form.querySelector('button[type="submit"]');
+
+                // Tampilkan progress bar seketika
+                if (progressBox) progressBox.classList.remove('hidden');
+                if (progressBar) progressBar.style.width = '10%';
+                if (percentText) percentText.innerText = '10%';
+                if (statusText)  statusText.innerText = 'Uploading Report & Evidence...';
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', form.getAttribute('action'), true);
+
+                // Pantau progres data yang terkirim secara real-time
+                xhr.upload.onprogress = function (event) {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        const visualPercent = Math.max(percent, 15);
+                        if (progressBar) progressBar.style.width = visualPercent + '%';
+                        if (percentText) percentText.innerText = visualPercent + '%';
+
+                        if (percent >= 100 && statusText) {
+                            statusText.innerText = 'Saving file to server...';
+                        }
+                    }
+                };
+
+                xhr.onload = function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (percentText) percentText.innerText = '100%';
+                        if (statusText)  statusText.innerText = 'Upload Complete!';
+
+                        if (typeof closeModal === 'function') {
+                            closeModal('modalAddReport');
+                        }
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Report saved successfully.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#0891b2',
+                                timer: 1800,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            setTimeout(() => { window.location.reload(); }, 600);
+                        }
+                    } else {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed!',
+                                text: 'Failed to upload report. Please try again.',
+                                background: '#0f172a',
+                                color: '#f8fafc',
+                                confirmButtonColor: '#ef4444'
+                            });
+                        } else {
+                            alert('Failed to upload report.');
+                        }
+                        resetUploadState();
+                    }
+                };
+
+                xhr.onerror = function () {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error!',
+                            text: 'Failed to upload report. Please check your network connection.',
+                            background: '#0f172a',
+                            color: '#f8fafc',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    } else {
+                        alert('Connection Error!');
+                    }
+                    resetUploadState();
+                };
+
+                function resetUploadState() {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                    if (progressBox) progressBox.classList.add('hidden');
+                    if (progressBar) progressBar.style.width = '0%';
+                }
+
+                xhr.send(formData);
+            });
+    }
+
+    // Pasang pemanggilan fungsi di event listener
+    document.addEventListener('DOMContentLoaded', function() {
+        initReportUploadBar();
+    });
+
+    document.addEventListener('turbo:load', function() {
+        initReportUploadBar();
+    });
+    
     // Current Announcement Version dari Server PHP
     (function() {
         <?php 
