@@ -1169,6 +1169,43 @@ $extraHead = '
             openModal('modalEditProject');
     }
 
+    // --- F. HELPER: FILE UPLOAD PREVIEW ---
+    function setupFileUpload(inputId, displayId) {
+        const fileInput = document.getElementById(inputId);
+        const fileNameDisplay = document.getElementById(displayId);
+        if (fileInput && fileNameDisplay) {
+            fileInput.addEventListener('change', function() {
+                const files = this.files;
+                if (files.length > 20) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Maximum 20 Files!', background: '#1e293b', color: '#fff' });
+                    } else {
+                        alert('Maximum 20 Files!');
+                    }
+                    this.value = ''; 
+                    fileNameDisplay.classList.add('hidden'); 
+                    return;
+                }
+                if (files.length > 0) {
+                    fileNameDisplay.classList.remove('hidden');
+                    fileNameDisplay.textContent = files.length === 1 ? `📄 ${files[0].name}` : `📂 ${files.length} file dipilih`;
+                } else {
+                    fileNameDisplay.classList.add('hidden');
+                }
+            });
+        }
+    }
+
+    // PEMANGGILAN KHUSUS UNTUK MODAL DASHBOARD.PHP
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tembak ID 'file_evidence' dan 'file-name-create' sesuai modal kamu
+        setupFileUpload('file_evidence', 'file-name-create');
+    });
+
+    document.addEventListener('turbo:load', function() {
+        setupFileUpload('file_evidence', 'file-name-create');
+    });
+
     function confirmDelete(id) {
             Swal.fire({
                 title: 'Hapus Project?',
